@@ -8,13 +8,13 @@
 - Initialise Astro 5 project with React integration and Tailwind CSS
 - Verify `wrangler` is installed and authenticated (if not: `npm install -g wrangler` then `wrangler login` and prompt Will to complete browser auth)
 - Verify `gh` CLI is installed and authenticated (if not: prompt Will to install/auth)
-- Create GitHub repo: `gh repo create home-by-october --public --source=. --push`
-- Create D1 database: `wrangler d1 create home-by-october`
+- Create GitHub repo: `gh repo create home-loan-tracker --public --source=. --push`
+- Create D1 database: `wrangler d1 create home-loan-tracker`
 - Capture the `database_id` from the output and write it into `wrangler.toml`
 - Configure `wrangler.toml` with D1 binding, compatibility flags, and Pages config
 - Create `migrations/0001_init.sql` with full database schema (all tables from CLAUDE.md)
-- Run migrations locally: `wrangler d1 execute home-by-october --local --file=migrations/0001_init.sql`
-- Run migrations on remote: `wrangler d1 execute home-by-october --remote --file=migrations/0001_init.sql`
+- Run migrations locally: `wrangler d1 execute home-loan-tracker --local --file=migrations/0001_init.sql`
+- Run migrations on remote: `wrangler d1 execute home-loan-tracker --remote --file=migrations/0001_init.sql`
 - Configure `astro.config.mjs` with `@astrojs/cloudflare` adapter
 - Create `src/lib/db.ts` helper for D1 access from Astro API routes
 - Create a test API route `GET /api/health` that queries D1 and returns `{ ok: true, tables: [...] }`
@@ -28,11 +28,11 @@
 - Verify the deployed URL returns the health check successfully
 
 **Acceptance criteria:**
-- GitHub repo exists at github.com/[will's username]/home-by-october
-- `wrangler d1 list` shows the home-by-october database
+- GitHub repo exists at github.com/macedondigital/home-loan-tracker
+- `wrangler d1 list` shows the home-loan-tracker database
 - All tables exist in remote D1 (verified via health endpoint)
 - Milestones and documents are seeded in remote D1
-- Site is live on Cloudflare Pages at home-by-october.pages.dev
+- Site is live on Cloudflare Pages at home-loan-tracker.pages.dev
 - Health endpoint returns `{ ok: true }` on the live URL
 - Secrets APP_PASSWORD and APP_SECRET are set in Cloudflare Pages
 
@@ -245,7 +245,7 @@ CC handles all git and deployment operations. Will does not run any commands.
 - Commit after each completed phase: `git add -A && git commit -m "feat: phase X — [description]" && git push`
 - Deploy after each phase: `npm run build && wrangler pages deploy dist/`
 - Branch: `main` (auto-deploys if GitHub integration is set up, otherwise CC deploys manually via wrangler)
-- If D1 migrations are added in a phase, run them on remote before deploying: `wrangler d1 execute home-by-october --remote --file=migrations/XXXX.sql`
+- If D1 migrations are added in a phase, run them on remote before deploying: `wrangler d1 execute home-loan-tracker --remote --file=migrations/XXXX.sql`
 - Verify the live URL works after each deploy before reporting phase complete
 
 **Every phase must end with:** git commit, git push, build, deploy, and verification that the live site works. Do not report a phase as complete until the live URL is confirmed working.

@@ -261,17 +261,17 @@ Will does not do any manual Cloudflare setup. CC must handle all of the followin
 
 ### GitHub repo
 - Initialise git repo locally
-- Create GitHub repo via `gh repo create home-by-october --public --source=. --push` (Will has `gh` CLI installed and authenticated)
+- Create GitHub repo via `gh repo create home-loan-tracker --public --source=. --push` (Will has `gh` CLI installed and authenticated)
 
 ### Cloudflare D1
-- Create database: `wrangler d1 create home-by-october`
+- Create database: `wrangler d1 create home-loan-tracker`
 - Capture the database_id from the output and write it into `wrangler.toml`
-- Run migrations: `wrangler d1 execute home-by-october --local --file=migrations/0001_init.sql` for local dev
-- Run migrations on remote: `wrangler d1 execute home-by-october --remote --file=migrations/0001_init.sql`
+- Run migrations: `wrangler d1 execute home-loan-tracker --local --file=migrations/0001_init.sql` for local dev
+- Run migrations on remote: `wrangler d1 execute home-loan-tracker --remote --file=migrations/0001_init.sql`
 
 ### Cloudflare Pages deployment
 - Deploy via `wrangler pages deploy dist/` after `npm run build`
-- Project name: `home-by-october`
+- Project name: `home-loan-tracker`
 - On first deploy, wrangler will create the Pages project automatically
 - After first deploy, set up D1 binding: `wrangler pages secret put APP_PASSWORD` (prompt Will for his chosen password)
 - Set secret: `wrangler pages secret put APP_SECRET` (generate a random 32-char string automatically)
@@ -279,13 +279,13 @@ Will does not do any manual Cloudflare setup. CC must handle all of the followin
 
 ### wrangler.toml structure
 ```toml
-name = "home-by-october"
+name = "home-loan-tracker"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
 
 [[d1_databases]]
 binding = "DB"
-database_name = "home-by-october"
+database_name = "home-loan-tracker"
 database_id = "<auto-populated after wrangler d1 create>"
 ```
 
