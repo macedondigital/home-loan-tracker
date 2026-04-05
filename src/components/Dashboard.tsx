@@ -116,8 +116,8 @@ export default function Dashboard() {
 
       if (balRes.success && balRes.data) {
         setBalances(balRes.data);
-        setBankAu(String(balRes.data.bank_australia));
-        setNabBiz(String(balRes.data.nab_business));
+        setBankAu(formatCurrency(balRes.data.bank_australia));
+        setNabBiz(formatCurrency(balRes.data.nab_business));
       }
 
       if (readyRes.success) setReadiness(readyRes.data);
@@ -173,9 +173,19 @@ export default function Dashboard() {
     fetchData();
   }, [fetchData]);
 
+  const formatInput = (value: string): string => {
+    const num = parseFloat(value.replace(/[$,\s]/g, ''));
+    if (isNaN(num)) return value;
+    return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num);
+  };
+
+  const rawValue = (value: string): string => {
+    return value.replace(/[$,\s]/g, '');
+  };
+
   const saveBalances = async () => {
-    const ba = parseFloat(bankAu);
-    const nab = parseFloat(nabBiz);
+    const ba = parseFloat(rawValue(bankAu));
+    const nab = parseFloat(rawValue(nabBiz));
     if (isNaN(ba) || isNaN(nab)) return;
 
     setSaving(true);
@@ -236,21 +246,27 @@ export default function Dashboard() {
           <div style={styles.inputGroup}>
             <label style={styles.inputLabel}>Bank Australia</label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={bankAu}
               onChange={(e) => setBankAu(e.target.value)}
+              onFocus={(e) => { e.target.value = rawValue(bankAu); setBankAu(rawValue(bankAu)); }}
+              onBlur={() => setBankAu(formatInput(bankAu))}
               style={styles.input}
-              placeholder="0"
+              placeholder="$0"
             />
           </div>
           <div style={styles.inputGroup}>
             <label style={styles.inputLabel}>NAB Business</label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={nabBiz}
               onChange={(e) => setNabBiz(e.target.value)}
+              onFocus={(e) => { e.target.value = rawValue(nabBiz); setNabBiz(rawValue(nabBiz)); }}
+              onBlur={() => setNabBiz(formatInput(nabBiz))}
               style={styles.input}
-              placeholder="0"
+              placeholder="$0"
             />
           </div>
           <button onClick={saveBalances} disabled={saving} style={styles.saveBtn}>
@@ -503,7 +519,7 @@ function TrendChart({ data }: { data: Record<string, Record<string, number>> }) 
                 ))}
               </div>
               <div style={{ fontSize: '0.6875rem', color: '#6b7280', marginTop: 4 }}>
-                {month.slice(5)}/{month.slice(2, 4)}
+                {new Date(Number(month.slice(0,4)), Number(month.slice(5))-1).toLocaleDateString('en-AU', { month: 'short' })}
               </div>
             </div>
           );

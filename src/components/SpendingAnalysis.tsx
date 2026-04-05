@@ -425,7 +425,7 @@ function TrendChart({ data }: { data: Record<string, Record<string, number>> }) 
                 ))}
               </div>
               <div style={{ fontSize: '0.625rem', color: '#6b7280', marginTop: 4 }}>
-                {month.slice(5)}/{month.slice(2, 4)}
+                {new Date(Number(month.slice(0,4)), Number(month.slice(5))-1).toLocaleDateString('en-AU', { month: 'short' })}
               </div>
             </div>
           );
