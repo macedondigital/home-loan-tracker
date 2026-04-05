@@ -36,7 +36,8 @@ export function parseCSV(content: string): ParsedTransaction[] {
     const fields = parseCSVLine(line);
     if (fields.length < 4) continue;
 
-    const dateStr = fields[0].trim();
+    // Effective Date (field 0) may be empty; fall back to Entered Date (field 1)
+    const dateStr = fields[0].trim() || fields[1].trim();
     const description = fields[2].trim().replace(/\\$/, ''); // Strip trailing backslash
     const amountStr = fields[3].trim();
     const balanceStr = fields.length > 4 ? fields[4].trim() : '';
