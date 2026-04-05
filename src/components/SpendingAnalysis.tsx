@@ -264,7 +264,11 @@ export default function SpendingAnalysis() {
             <h2 style={s.sectionTitle}>Category Breakdown</h2>
             <div style={s.card}>
               {summary.categories.map((cat) => (
-                <CategoryRow key={cat.id} category={cat} />
+                <CategoryRow
+                  key={cat.id}
+                  category={cat}
+                  transactions={transactions.filter((t) => (t.category_override || t.category) === cat.id)}
+                />
               ))}
             </div>
           </div>
@@ -337,7 +341,8 @@ export default function SpendingAnalysis() {
   );
 }
 
-function CategoryRow({ category }: { category: CategorySummary }) {
+function CategoryRow({ category, transactions }: { category: CategorySummary; transactions: Transaction[] }) {
+  const [expanded, setExpanded] = useState(false);
   const maxVal = Math.max(category.actual, category.target ?? 0, category.projected);
   const barMax = maxVal > 0 ? maxVal * 1.2 : 100;
   const actualPct = (category.actual / barMax) * 100;
@@ -345,11 +350,15 @@ function CategoryRow({ category }: { category: CategorySummary }) {
 
   return (
     <div style={s.catRow}>
-      <div style={s.catHeader}>
+      <div
+        style={{ ...s.catHeader, cursor: 'pointer', userSelect: 'none' as const }}
+        onClick={() => setExpanded(!expanded)}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ ...s.dot, background: category.color }} />
           <span style={s.catName}>{category.label}</span>
           <span style={s.catCount}>({category.count})</span>
+          <span style={{ fontSize: '0.6875rem', color: '#9ca3af', marginLeft: 2 }}>{expanded ? '\u25B2' : '\u25BC'}</span>
         </div>
         <div style={s.catAmounts}>
           <span style={{ fontWeight: 600, color: category.over_target ? '#dc2626' : '#1a1a1a' }}>
@@ -372,6 +381,28 @@ function CategoryRow({ category }: { category: CategorySummary }) {
       </div>
       {category.projected !== category.actual && (
         <div style={s.projectedLabel}>Projected: {formatCurrency(category.projected)}</div>
+      )}
+      {expanded && transactions.length > 0 && (
+        <div style={{ marginTop: 8, paddingLeft: 16 }}>
+          {transactions.map((txn) => (
+            <div key={txn.id} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '0.375rem 0', borderBottom: '1px solid #f9fafb', fontSize: '0.8125rem',
+            }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: 0 }}>
+                <span style={{ color: '#9ca3af', flexShrink: 0, fontSize: '0.75rem' }}>
+                  {new Date(txn.date).toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit' })}
+                </span>
+                <span style={{ color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                  {txn.description}
+                </span>
+              </div>
+              <span style={{ fontWeight: 500, color: '#1a1a1a', flexShrink: 0, marginLeft: 8 }}>
+                {formatCurrency(Math.abs(txn.amount), 2)}
+              </span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
