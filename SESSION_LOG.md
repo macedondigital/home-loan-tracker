@@ -50,3 +50,17 @@
 - Scoped Cloudflare API token set in ~/.zshrc (replaces OAuth flow)
 - Custom stacked bar chart (pure CSS) instead of Recharts for Phase 4 (avoids Recharts SSR issues on Cloudflare; Recharts can be added for Phase 5 if needed)
 - Milestones API includes toggle (PATCH) for Phase 6 timeline page
+
+## Phases 5, 6 (2026-04-05)
+
+**Phase 5: Spending analysis page**
+- Drag and drop CSV upload zone with success/error messages
+- Month selector dropdown, summary metrics row
+- Category breakdown table with progress bars and target markers
+- Problem categories trend chart
+- Transaction list with inline category override dropdown
+
+**Phase 6: Timeline and broker readiness pages**
+- Timeline: interactive milestone checklist with toggle persistence, progress bar, key numbers card
+- Broker Ready: large readiness score ring, 10 criteria pass/fail, borrowing capacity table (3 scenarios), documents checklist with toggle persistence
+- Documents API: GET /api/documents, PATCH /api/documents/:id
