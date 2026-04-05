@@ -1,0 +1,159 @@
+---
+export const prerender = false;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign in</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background-color: #FAFAF7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 1.5rem;
+      }
+
+      .login-card {
+        background: white;
+        border: 1px solid #e8e6df;
+        border-radius: 12px;
+        padding: 2.5rem;
+        width: 100%;
+        max-width: 380px;
+      }
+
+      h1 {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 1.5rem;
+        color: #166534;
+        margin-bottom: 0.5rem;
+        text-align: center;
+      }
+
+      .subtitle {
+        color: #6b7280;
+        font-size: 0.875rem;
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.5rem;
+      }
+
+      input[type="password"] {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid #e8e6df;
+        border-radius: 8px;
+        font-size: 1rem;
+        outline: none;
+        transition: border-color 0.15s;
+      }
+
+      input[type="password"]:focus {
+        border-color: #166534;
+      }
+
+      button {
+        width: 100%;
+        margin-top: 1.5rem;
+        padding: 0.75rem;
+        background: #166534;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+
+      button:hover {
+        background: #14532d;
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .error {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #dc2626;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        margin-bottom: 1rem;
+        display: none;
+      }
+
+      .error.visible {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-card">
+      <h1>Home by October</h1>
+      <p class="subtitle">Enter your password to continue</p>
+      <div id="error" class="error"></div>
+      <form id="login-form">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password" autofocus />
+        <button type="submit">Sign in</button>
+      </form>
+    </div>
+
+    <script>
+      const form = document.getElementById('login-form') as HTMLFormElement;
+      const errorEl = document.getElementById('error') as HTMLDivElement;
+      const btn = form.querySelector('button') as HTMLButtonElement;
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorEl.classList.remove('visible');
+        btn.disabled = true;
+        btn.textContent = 'Signing in...';
+
+        const password = (form.querySelector('#password') as HTMLInputElement).value;
+
+        try {
+          const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password }),
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            window.location.href = '/';
+          } else {
+            errorEl.textContent = data.error || 'Incorrect password';
+            errorEl.classList.add('visible');
+          }
+        } catch {
+          errorEl.textContent = 'Something went wrong. Please try again.';
+          errorEl.classList.add('visible');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Sign in';
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -257,6 +257,8 @@ File: `src/middleware.ts`
 
 ## Infrastructure (CC handles everything)
 
+**Cloudflare auth:** A scoped API token is set via `CLOUDFLARE_API_TOKEN` in `~/.zshrc`. Scoped to the Macedon Digital account only. No need for `wrangler login` or OAuth flows. All wrangler commands pick up this token automatically.
+
 Will does not do any manual Cloudflare setup. CC must handle all of the following via wrangler CLI:
 
 ### GitHub repo
