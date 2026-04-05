@@ -89,7 +89,7 @@ export const CATEGORIES: Category[] = [
     patterns: [
       /amcal/i, /pharmac/i, /chemist/i, /medicann/i, /instant script/i,
       /holistic health/i, /professional whey/i, /geelong soul patt/i, /pharmacy/i,
-      /\bdco\b/i,
+      /\bdco\b/i, /myers street famil/i,
     ],
   },
   {
@@ -119,6 +119,13 @@ export const CATEGORIES: Category[] = [
     target: null,
     color: '#f59e0b',
     patterns: [/mkke investments/i],
+  },
+  {
+    id: 'rent',
+    label: 'Rent',
+    target: null,
+    color: '#b91c1c',
+    patterns: [/hayden leopold/i],
   },
 ];
 
