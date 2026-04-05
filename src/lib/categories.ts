@@ -108,9 +108,24 @@ export const CATEGORIES: Category[] = [
   },
 ];
 
-export function categorise(description: string, amount: number): string {
+export interface MerchantRule {
+  pattern: string;
+  category: string;
+}
+
+export function categorise(description: string, amount: number, merchantRules?: MerchantRule[]): string {
   // Income: any positive amount
   if (amount > 0) return 'income';
+
+  // Check merchant rules first (user overrides take priority)
+  if (merchantRules) {
+    const descLower = description.toLowerCase();
+    for (const rule of merchantRules) {
+      if (descLower.includes(rule.pattern)) {
+        return rule.category;
+      }
+    }
+  }
 
   for (const cat of CATEGORIES) {
     for (const pattern of cat.patterns) {
@@ -121,6 +136,24 @@ export function categorise(description: string, amount: number): string {
   }
 
   return 'other';
+}
+
+/**
+ * Extract a merchant name from a Bank Australia transaction description.
+ * Strips prefixes (VISA-, POS #xxx-), reference numbers (AU#, Ref.), and locations.
+ */
+export function extractMerchantPattern(description: string): string {
+  let cleaned = description;
+  // Strip common prefixes
+  cleaned = cleaned.replace(/^(VISA-|POS\s*#\d+-|EFTPOS\s+|DIRECTDEBIT\s+|PAY\/TSFR\s+)/i, '');
+  // Strip reference/location suffix
+  cleaned = cleaned.replace(/\s*AU#.*$/i, '');
+  cleaned = cleaned.replace(/\s*\(Ref\..*$/i, '');
+  // Strip trailing location (text after 2+ spaces)
+  cleaned = cleaned.replace(/\s{2,}.*$/, '');
+  // Strip trailing backslash
+  cleaned = cleaned.replace(/\\+$/, '');
+  return cleaned.trim().toLowerCase();
 }
 
 export function getCategoryById(id: string): Category | undefined {

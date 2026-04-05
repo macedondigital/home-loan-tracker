@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getDB } from '../../../lib/db';
-import { ALL_CATEGORY_IDS } from '../../../lib/categories';
+import { ALL_CATEGORY_IDS, extractMerchantPattern } from '../../../lib/categories';
 
 export const PATCH: APIRoute = async ({ params, request }) => {
   const id = params.id;
@@ -24,18 +24,47 @@ export const PATCH: APIRoute = async ({ params, request }) => {
     }
 
     const db = getDB();
-    const result = await db.prepare(
-      `UPDATE transactions SET category_override = ? WHERE id = ?`
-    ).bind(categoryOverride, Number(id)).run();
 
-    if (result.meta.changes === 0) {
+    // Get the transaction description to create a merchant rule
+    const txn = await db.prepare(
+      `SELECT description FROM transactions WHERE id = ?`
+    ).bind(Number(id)).all();
+
+    if (txn.results.length === 0) {
       return new Response(JSON.stringify({ success: false, error: 'Transaction not found' }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    return new Response(JSON.stringify({ success: true }), {
+    const description = (txn.results[0] as Record<string, unknown>).description as string;
+    const merchantPattern = extractMerchantPattern(description);
+
+    // Update the transaction
+    await db.prepare(
+      `UPDATE transactions SET category_override = ? WHERE id = ?`
+    ).bind(categoryOverride, Number(id)).run();
+
+    // Save merchant rule for future uploads (upsert)
+    if (merchantPattern) {
+      await db.prepare(
+        `INSERT INTO merchant_rules (pattern, category, source_description)
+         VALUES (?, ?, ?)
+         ON CONFLICT(pattern) DO UPDATE SET category = excluded.category`
+      ).bind(merchantPattern, categoryOverride, description).run();
+
+      // Also apply to all other transactions with the same merchant in the current data
+      await db.prepare(
+        `UPDATE transactions
+         SET category_override = ?
+         WHERE LOWER(description) LIKE ? AND id != ? AND category_override IS NULL`
+      ).bind(categoryOverride, `%${merchantPattern}%`, Number(id)).run();
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      data: { merchant_pattern: merchantPattern },
+    }), {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {

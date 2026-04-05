@@ -1,4 +1,4 @@
-import { categorise } from './categories';
+import { categorise, type MerchantRule } from './categories';
 
 export interface ParsedTransaction {
   date: string;       // ISO format YYYY-MM-DD
@@ -16,7 +16,7 @@ export interface ParsedTransaction {
  * Amounts: prefixed with $, negatives have - before $ (e.g. -$45.00)
  * Some descriptions are wrapped in quotes.
  */
-export function parseCSV(content: string): ParsedTransaction[] {
+export function parseCSV(content: string, merchantRules?: MerchantRule[]): ParsedTransaction[] {
   const lines = content.split(/\r?\n/).filter((line) => line.trim());
 
   if (lines.length === 0) {
@@ -50,7 +50,7 @@ export function parseCSV(content: string): ParsedTransaction[] {
 
     const balance = balanceStr ? parseAmount(balanceStr) : null;
     const month_key = date.slice(0, 7); // YYYY-MM
-    const category = categorise(description, amount);
+    const category = categorise(description, amount, merchantRules);
 
     transactions.push({
       date,

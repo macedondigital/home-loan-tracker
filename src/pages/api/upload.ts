@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getDB } from '../../lib/db';
 import { parseCSV } from '../../lib/csv-parser';
+import type { MerchantRule } from '../../lib/categories';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -22,7 +23,15 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const content = await file.text();
-    const transactions = parseCSV(content);
+
+    // Fetch merchant rules before parsing
+    const db = getDB();
+    const rulesResult = await db.prepare(
+      `SELECT pattern, category FROM merchant_rules`
+    ).all();
+    const merchantRules = rulesResult.results as MerchantRule[];
+
+    const transactions = parseCSV(content, merchantRules);
 
     if (transactions.length === 0) {
       return new Response(JSON.stringify({ success: false, error: 'No valid transactions found in CSV' }), {
@@ -30,8 +39,6 @@ export const POST: APIRoute = async ({ request }) => {
         headers: { 'Content-Type': 'application/json' },
       });
     }
-
-    const db = getDB();
     let newCount = 0;
     let duplicateCount = 0;
 
