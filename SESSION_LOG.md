@@ -23,3 +23,30 @@
 **Pending for Phase 2:**
 - Will needs to set APP_PASSWORD via wrangler CLI
 - REFERENCE_PROTOTYPE.jsx and test-data/ not yet provided by Will
+
+## Phases 2, 3, 4 (2026-04-05)
+
+**Phase 2: Auth middleware**
+- Login page, HMAC-SHA256 signed cookie (30 day), middleware redirects/401s
+- APP_PASSWORD set by Will
+
+**Phase 3: CSV upload and transaction storage**
+- Categorisation engine: 12 categories with regex patterns, targets, colours
+- Bank Australia CSV parser: handles quoted fields, POS prefixes, amount formats
+- Upload endpoint with INSERT OR IGNORE deduplication
+- Transactions, months, summary API endpoints
+
+**Phase 4: Dashboard overview**
+- Balance cards: Bank Australia, NAB Business, Combined, Buffer after $62k
+- Balance input saves snapshots to D1
+- Weekly check-in: days since last upload, problem category summary
+- Broker readiness: 10 criteria scored from live data with SVG ring
+- Timeline progress bar: X/9 milestones
+- Problem categories trend chart (stacked bar, pure CSS)
+- Nav: desktop top bar + mobile bottom tab bar
+- API endpoints: balances, readiness, milestones, uploads/latest
+
+**Key decisions:**
+- Scoped Cloudflare API token set in ~/.zshrc (replaces OAuth flow)
+- Custom stacked bar chart (pure CSS) instead of Recharts for Phase 4 (avoids Recharts SSR issues on Cloudflare; Recharts can be added for Phase 5 if needed)
+- Milestones API includes toggle (PATCH) for Phase 6 timeline page
