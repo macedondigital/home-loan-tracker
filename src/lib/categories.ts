@@ -32,7 +32,7 @@ export const CATEGORIES: Category[] = [
       /torquay hotel/i, /taste jamaica/i, /\bluka\b/i, /woodhouse/i,
       /paddington/i, /cinnabar/i, /aohna/i, /untitled/i, /twistto/i,
       /pro whipp/i, /boost leopold/i, /hi sushi/i, /great ocean rolls/i,
-      /gelato/i, /dco leopold/i, /highland milkbar/i, /waurn ponds pty/i,
+      /gelato/i, /highland milkbar/i, /waurn ponds pty/i,
       /bellarine estate/i, /rob s amusements/i,
     ],
   },
@@ -89,6 +89,7 @@ export const CATEGORIES: Category[] = [
     patterns: [
       /amcal/i, /pharmac/i, /chemist/i, /medicann/i, /instant script/i,
       /holistic health/i, /professional whey/i, /geelong soul patt/i, /pharmacy/i,
+      /\bdco\b/i,
     ],
   },
   {
