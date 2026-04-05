@@ -11,6 +11,11 @@ export const onRequest = defineMiddleware(async ({ request, url, redirect }, nex
     return next();
   }
 
+  // Allow static assets (files with extensions)
+  if (path.match(/\.\w+$/)) {
+    return next();
+  }
+
   // Check session cookie
   const cookieHeader = request.headers.get('cookie');
   const valid = await validateSession(cookieHeader);

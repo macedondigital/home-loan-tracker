@@ -1,8 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import ErrorBoundary from '../components/ErrorBoundary';
 import Timeline from '../components/Timeline';
 ---
 
 <Layout title="Timeline" activeNav="timeline">
-  <Timeline client:load />
+  <ErrorBoundary client:load fallback="Failed to load timeline">
+    <Timeline client:load />
+  </ErrorBoundary>
 </Layout>

@@ -45,6 +45,21 @@ interface UploadInfo {
   uploaded_at: string;
 }
 
+interface BalanceSnapshot {
+  bank_australia: number;
+  nab_business: number;
+  recorded_at: string;
+}
+
+interface UploadRecord {
+  id: number;
+  filename: string;
+  txn_count: number;
+  new_count: number;
+  duplicate_count: number;
+  uploaded_at: string;
+}
+
 const BUFFER_TARGET = 62000;
 const PROBLEM_CATEGORIES = ['uber-eats', 'amazon', 'eating-out'];
 
@@ -84,16 +99,19 @@ export default function Dashboard() {
   const [months, setMonths] = useState<MonthSummary[]>([]);
   const [trendData, setTrendData] = useState<Record<string, Record<string, number>>>({});
   const [recentSummary, setRecentSummary] = useState<CategorySummary[]>([]);
+  const [balanceHistory, setBalanceHistory] = useState<BalanceSnapshot[]>([]);
+  const [uploadHistory, setUploadHistory] = useState<UploadRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     try {
-      const [balRes, readyRes, mileRes, monthsRes, uploadRes] = await Promise.all([
+      const [balRes, readyRes, mileRes, monthsRes, balHistRes, uploadsRes] = await Promise.all([
         fetch('/api/balances').then((r) => r.json()),
         fetch('/api/readiness').then((r) => r.json()),
         fetch('/api/milestones').then((r) => r.json()),
         fetch('/api/months').then((r) => r.json()),
-        fetch('/api/health').then((r) => r.json()), // placeholder for upload check
+        fetch('/api/balances/history').then((r) => r.json()),
+        fetch('/api/uploads').then((r) => r.json()),
       ]);
 
       if (balRes.success && balRes.data) {
@@ -105,6 +123,8 @@ export default function Dashboard() {
       if (readyRes.success) setReadiness(readyRes.data);
       if (mileRes.success) setMilestones(mileRes.data);
       if (monthsRes.success) setMonths(monthsRes.data);
+      if (balHistRes.success) setBalanceHistory(balHistRes.data);
+      if (uploadsRes.success) setUploadHistory(uploadsRes.data);
 
       // Fetch last upload info
       const lastUploadRes = await fetch('/api/uploads/latest').then((r) => r.json()).catch(() => ({ success: false }));
@@ -341,6 +361,83 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Balance History */}
+      {balanceHistory.length > 1 && (
+        <div style={styles.section}>
+          <h2 style={styles.sectionTitle}>Balance History</h2>
+          <div style={{ ...styles.card, overflowX: 'auto' as const }}>
+            <BalanceHistoryChart data={balanceHistory} />
+          </div>
+        </div>
+      )}
+
+      {/* Upload History */}
+      {uploadHistory.length > 0 && (
+        <div style={styles.section}>
+          <h2 style={styles.sectionTitle}>Upload History</h2>
+          <div style={styles.card}>
+            {uploadHistory.map((u) => (
+              <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid #f3f4f6', fontSize: '0.8125rem' }}>
+                <div>
+                  <span style={{ color: '#374151', fontWeight: 500 }}>{u.filename || 'CSV upload'}</span>
+                  <span style={{ color: '#9ca3af', marginLeft: 8 }}>{formatDate(u.uploaded_at)}</span>
+                </div>
+                <div style={{ color: '#6b7280', whiteSpace: 'nowrap' as const }}>
+                  {u.new_count} new, {u.duplicate_count} skipped
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BalanceHistoryChart({ data }: { data: BalanceSnapshot[] }) {
+  if (data.length < 2) return null;
+
+  const points = data.map((d) => ({
+    combined: d.bank_australia + d.nab_business,
+    date: d.recorded_at,
+  }));
+
+  const maxVal = Math.max(...points.map((p) => p.combined));
+  const minVal = Math.min(...points.map((p) => p.combined));
+  const range = maxVal - minVal || 1;
+
+  const width = 600;
+  const height = 140;
+  const padX = 0;
+  const padY = 10;
+
+  const pathPoints = points.map((p, i) => {
+    const x = padX + (i / (points.length - 1)) * (width - padX * 2);
+    const y = padY + (1 - (p.combined - minVal) / range) * (height - padY * 2);
+    return `${x},${y}`;
+  });
+
+  const pathD = `M ${pathPoints.join(' L ')}`;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: '0.75rem', color: '#6b7280' }}>
+        <span>{formatCurrency(maxVal)}</span>
+        <span>{formatCurrency(minVal)}</span>
+      </div>
+      <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto' }}>
+        <path d={pathD} fill="none" stroke="#166534" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        {points.map((p, i) => {
+          const x = padX + (i / (points.length - 1)) * (width - padX * 2);
+          const y = padY + (1 - (p.combined - minVal) / range) * (height - padY * 2);
+          return <circle key={i} cx={x} cy={y} r="4" fill="white" stroke="#166534" strokeWidth="2" />;
+        })}
+      </svg>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: '0.625rem', color: '#9ca3af' }}>
+        <span>{formatDate(points[0].date)}</span>
+        <span>{formatDate(points[points.length - 1].date)}</span>
+      </div>
     </div>
   );
 }

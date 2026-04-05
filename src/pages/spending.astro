@@ -1,8 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import ErrorBoundary from '../components/ErrorBoundary';
 import SpendingAnalysis from '../components/SpendingAnalysis';
 ---
 
 <Layout title="Spending Analysis" activeNav="spending">
-  <SpendingAnalysis client:load />
+  <ErrorBoundary client:load fallback="Failed to load spending analysis">
+    <SpendingAnalysis client:load />
+  </ErrorBoundary>
 </Layout>

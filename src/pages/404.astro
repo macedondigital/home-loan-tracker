@@ -1,0 +1,36 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Page not found">
+  <div class="not-found">
+    <h1>Page not found</h1>
+    <p>The page you're looking for doesn't exist.</p>
+    <a href="/">Back to dashboard</a>
+  </div>
+</Layout>
+
+<style>
+  .not-found {
+    text-align: center;
+    padding: 4rem 1.5rem;
+  }
+  h1 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 2rem;
+    color: #1a1a1a;
+    margin-bottom: 0.5rem;
+  }
+  p {
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+  }
+  a {
+    color: #166534;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+</style>

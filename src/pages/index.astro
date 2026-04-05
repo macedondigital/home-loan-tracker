@@ -1,8 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import ErrorBoundary from '../components/ErrorBoundary';
 import Dashboard from '../components/Dashboard';
 ---
 
 <Layout activeNav="overview">
-  <Dashboard client:load />
+  <ErrorBoundary client:load fallback="Failed to load dashboard">
+    <Dashboard client:load />
+  </ErrorBoundary>
 </Layout>

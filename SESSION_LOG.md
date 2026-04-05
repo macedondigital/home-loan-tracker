@@ -64,3 +64,23 @@
 - Timeline: interactive milestone checklist with toggle persistence, progress bar, key numbers card
 - Broker Ready: large readiness score ring, 10 criteria pass/fail, borrowing capacity table (3 scenarios), documents checklist with toggle persistence
 - Documents API: GET /api/documents, PATCH /api/documents/:id
+
+## Phase 7: Balance history and final polish (2026-04-05)
+
+**Completed:**
+- Balance history SVG line chart on dashboard (shows combined balance over time)
+- Upload history list on dashboard (filename, date, new/duplicate counts)
+- Uploads list API endpoint (GET /api/uploads)
+- PWA manifest with standalone mode and theme color
+- SVG favicon (green rounded square with "H")
+- Meta tags: theme-color, apple-mobile-web-app-capable, apple-touch-icon
+- Error boundaries on all React islands
+- 404 page
+- Middleware updated to allow static assets (manifest.json, favicon.svg) through auth
+
+**Not done (noted for future):**
+- PNG icons for iOS home screen (needs ImageMagick; SVG works for now)
+- Lighthouse audit (requires browser-based tooling)
+- REFERENCE_PROTOTYPE.jsx and test-data/ still not provided
+
+**Project status: All 7 phases complete. Dashboard is live at https://home-loan-tracker.pages.dev**
