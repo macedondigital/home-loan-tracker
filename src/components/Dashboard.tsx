@@ -232,7 +232,7 @@ export default function Dashboard() {
           <div style={{ ...styles.cardValue, color: '#166534' }}>{balances ? formatCurrency(combined) : 'Not set'}</div>
         </div>
         <div style={styles.card}>
-          <div style={styles.cardLabel}>Buffer (after $62k)</div>
+          <div style={styles.cardLabel}>Surplus above purchase costs</div>
           <div style={{ ...styles.cardValue, color: buffer >= 0 ? '#166534' : '#dc2626' }}>
             {balances ? formatCurrency(buffer) : 'Not set'}
           </div>
