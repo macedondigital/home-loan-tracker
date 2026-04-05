@@ -68,7 +68,7 @@ export const CATEGORIES: Category[] = [
     color: '#0891b2',
     patterns: [
       /adventure park/i, /bounce/i, /flip out/i, /geelong ninjas/i,
-      /splashdown/i, /buckley/i, /moshtix/i, /codespark/i, /paparazzi studios/i,
+      /splashdown/i, /buckley/i, /codespark/i, /paparazzi studios/i,
     ],
   },
   {
@@ -105,6 +105,20 @@ export const CATEGORIES: Category[] = [
     target: null,
     color: '#6b7280',
     patterns: [/agl sales/i, /barwon water/i, /aust unity/i, /vicroads/i],
+  },
+  {
+    id: 'entertainment',
+    label: 'Entertainment',
+    target: null,
+    color: '#8b5cf6',
+    patterns: [/moshtix/i],
+  },
+  {
+    id: 'personal-care',
+    label: 'Personal care',
+    target: null,
+    color: '#f59e0b',
+    patterns: [/mkke investments/i],
   },
 ];
 
