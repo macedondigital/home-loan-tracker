@@ -17,6 +17,8 @@ interface Document {
   id: string;
   label: string;
   checked: number;
+  status: 'not_started' | 'in_progress' | 'obtained';
+  required_for_preapproval: number;
 }
 
 function formatCurrency(amount: number): string {
@@ -41,12 +43,25 @@ export default function BrokerReady() {
     }).finally(() => setLoading(false));
   }, []);
 
-  const toggleDocument = async (id: string) => {
-    const res = await fetch(`/api/documents/${id}`, { method: 'PATCH' });
+  const cycleStatus = async (doc: Document) => {
+    const cycle: Record<string, 'not_started' | 'in_progress' | 'obtained'> = {
+      not_started: 'in_progress',
+      in_progress: 'obtained',
+      obtained: 'not_started',
+    };
+    const newStatus = cycle[doc.status] || 'in_progress';
+    setDocuments((prev) =>
+      prev.map((d) => d.id === doc.id ? { ...d, status: newStatus, checked: newStatus === 'obtained' ? 1 : 0 } : d)
+    );
+    const res = await fetch(`/api/documents/${doc.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus }),
+    });
     const data = await res.json();
-    if (data.success) {
+    if (!data.success) {
       setDocuments((prev) =>
-        prev.map((d) => d.id === id ? { ...d, checked: data.data.checked } : d)
+        prev.map((d) => d.id === doc.id ? { ...d, status: doc.status, checked: doc.checked } : d)
       );
     }
   };
@@ -125,10 +140,13 @@ export default function BrokerReady() {
       <div style={{ marginTop: '1.5rem' }}>
         <h2 style={s.sectionTitle}>Documents Checklist</h2>
         <div style={s.card}>
+          <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.75rem' }}>
+            {documents.filter((d) => d.required_for_preapproval && d.status === 'obtained').length} of {documents.filter((d) => d.required_for_preapproval).length} required documents obtained
+          </div>
           {documents.map((doc, i) => (
             <div
               key={doc.id}
-              onClick={() => toggleDocument(doc.id)}
+              onClick={() => cycleStatus(doc)}
               style={{
                 ...s.docRow,
                 borderBottom: i < documents.length - 1 ? '1px solid #f3f4f6' : 'none',
@@ -136,18 +154,31 @@ export default function BrokerReady() {
               }}
             >
               <div style={{
-                ...s.checkbox,
-                background: doc.checked ? '#166534' : 'white',
-                borderColor: doc.checked ? '#166534' : '#d1d5db',
+                width: 22, height: 22, borderRadius: '50%', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                ...(doc.status === 'obtained'
+                  ? { background: '#166534', color: 'white' }
+                  : doc.status === 'in_progress'
+                  ? { background: '#fffbeb', border: '2px solid #f59e0b', color: '#f59e0b' }
+                  : { background: '#f3f4f6', border: '2px solid #d1d5db', color: '#9ca3af' }),
               }}>
-                {doc.checked ? <span style={{ color: 'white', fontSize: '0.75rem' }}>{'\u2713'}</span> : null}
+                {doc.status === 'obtained' && <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{'\u2713'}</span>}
+                {doc.status === 'in_progress' && <span style={{ fontSize: '0.625rem', fontWeight: 700 }}>{'\u25CF'}</span>}
               </div>
-              <span style={{
-                fontSize: '0.875rem',
-                color: doc.checked ? '#9ca3af' : '#374151',
-                textDecoration: doc.checked ? 'line-through' : 'none',
-              }}>
-                {doc.label}
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' as const }}>
+                <span style={{
+                  fontSize: '0.875rem',
+                  color: doc.status === 'obtained' ? '#9ca3af' : '#374151',
+                  textDecoration: doc.status === 'obtained' ? 'line-through' : 'none',
+                }}>
+                  {doc.label}
+                </span>
+                {doc.required_for_preapproval ? (
+                  <span style={{ background: '#fef2f2', color: '#dc2626', fontSize: '10px', fontWeight: 600, padding: '1px 6px', borderRadius: '3px' }}>Required</span>
+                ) : null}
+              </div>
+              <span style={{ fontSize: '0.6875rem', color: '#9ca3af', flexShrink: 0 }}>
+                {doc.status === 'not_started' ? 'Not started' : doc.status === 'in_progress' ? 'In progress' : 'Obtained'}
               </span>
             </div>
           ))}

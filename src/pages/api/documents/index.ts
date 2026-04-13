@@ -5,7 +5,9 @@ export const GET: APIRoute = async () => {
   try {
     const db = getDB();
     const result = await db.prepare(
-      `SELECT id, label, checked, checked_at FROM documents ORDER BY ROWID ASC`
+      `SELECT id, label, checked, checked_at, status, required_for_preapproval
+       FROM documents
+       ORDER BY required_for_preapproval DESC, ROWID ASC`
     ).all();
 
     return new Response(JSON.stringify({
