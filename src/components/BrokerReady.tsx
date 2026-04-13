@@ -40,6 +40,16 @@ interface IncomeAssessment {
   income_sufficient_for_target: boolean;
 }
 
+interface FhgCriterion {
+  id: string;
+  label: string;
+  detail: string | null;
+  criterion_type: string;
+  confirmed: number;
+  status?: 'met' | 'failed' | 'unknown';
+  computed_value?: number | null;
+}
+
 interface BorrowingCapacity {
   max_loan: number;
   monthly_income: number;
@@ -69,6 +79,7 @@ export default function BrokerReady() {
   const [incomeRecords, setIncomeRecords] = useState<IncomeRecord[]>([]);
   const [assessment, setAssessment] = useState<IncomeAssessment | null>(null);
   const [capacity, setCapacity] = useState<BorrowingCapacity | null>(null);
+  const [fhgCriteria, setFhgCriteria] = useState<FhgCriterion[]>([]);
   const [loading, setLoading] = useState(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -88,12 +99,14 @@ export default function BrokerReady() {
       fetch('/api/income').then((r) => r.json()),
       fetch('/api/income/assessment').then((r) => r.json()),
       fetch('/api/borrowing-capacity').then((r) => r.json()),
-    ]).then(([readyRes, docsRes, incomeRes, assessRes, capRes]) => {
+      fetch('/api/fhg-eligibility').then((r) => r.json()),
+    ]).then(([readyRes, docsRes, incomeRes, assessRes, capRes, fhgRes]) => {
       if (readyRes.success) setReadiness(readyRes.data);
       if (docsRes.success) setDocuments(docsRes.data);
       if (incomeRes.success) setIncomeRecords(incomeRes.data);
       if (assessRes.success) setAssessment(assessRes.data);
       if (capRes.success) setCapacity(capRes.data);
+      if (fhgRes.success) setFhgCriteria(fhgRes.data);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -146,6 +159,25 @@ export default function BrokerReady() {
     };
   };
 
+  const toggleFhg = async (criterion: FhgCriterion) => {
+    if (criterion.criterion_type === 'computed') return;
+    const newConfirmed = criterion.confirmed ? 0 : 1;
+    setFhgCriteria((prev) =>
+      prev.map((c) => c.id === criterion.id ? { ...c, confirmed: newConfirmed } : c)
+    );
+    const res = await fetch('/api/fhg-eligibility', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: criterion.id, confirmed: !!newConfirmed }),
+    });
+    const data = await res.json();
+    if (!data.success) {
+      setFhgCriteria((prev) =>
+        prev.map((c) => c.id === criterion.id ? { ...c, confirmed: criterion.confirmed } : c)
+      );
+    }
+  };
+
   if (loading) {
     return <div style={{ textAlign: 'center', padding: '4rem', color: '#6b7280' }}>Loading...</div>;
   }
@@ -190,6 +222,69 @@ export default function BrokerReady() {
           ))}
         </div>
       </div>
+
+      {/* FHG Eligibility */}
+      {fhgCriteria.length > 0 && (
+        <div style={{ marginTop: '1.5rem' }}>
+          <h2 style={s.sectionTitle}>FHG Eligibility</h2>
+          <div style={s.card}>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.75rem' }}>
+              {fhgCriteria.filter((c) => c.confirmed).length} of {fhgCriteria.length} criteria confirmed
+            </div>
+            {fhgCriteria.map((c, i) => {
+              const isComputed = c.criterion_type === 'computed';
+              const isConfirmed = c.confirmed === 1;
+              const isFailed = isComputed && c.status === 'failed';
+              const isUnknown = isComputed && (c.status === 'unknown' || !c.status);
+
+              return (
+                <div
+                  key={c.id}
+                  onClick={() => toggleFhg(c)}
+                  style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.625rem 0',
+                    borderBottom: i < fhgCriteria.length - 1 ? '1px solid #f3f4f6' : 'none',
+                    cursor: isComputed ? 'default' : 'pointer',
+                    userSelect: 'none' as const,
+                  }}
+                >
+                  <span style={{
+                    fontSize: '1rem', fontWeight: 700, width: 20, flexShrink: 0,
+                    color: isFailed ? '#dc2626' : isConfirmed ? '#166534' : '#9ca3af',
+                  }}>
+                    {isFailed ? '\u2717' : isConfirmed ? '\u2713' : '?'}
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 500, color: '#374151', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' as const }}>
+                      {c.label}
+                      {isComputed && (
+                        <span style={{ fontSize: '10px', color: '#9ca3af', fontWeight: 400, background: '#f3f4f6', padding: '1px 5px', borderRadius: 3 }}>auto</span>
+                      )}
+                    </div>
+                    {isComputed && c.id === 'income-cap' && (
+                      <div style={{ fontSize: '0.75rem', color: isUnknown ? '#9ca3af' : isFailed ? '#dc2626' : '#166534', marginTop: 2 }}>
+                        {isUnknown
+                          ? 'Enter taxable income in the income section below'
+                          : c.computed_value != null
+                          ? `Taxable income: ${formatCurrency(c.computed_value)} (${c.computed_value < 125000 ? 'under' : 'exceeds'} $125,000 cap)`
+                          : ''}
+                      </div>
+                    )}
+                    {!isComputed && c.detail && (
+                      <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: 2 }}>
+                        {c.detail}
+                        {c.id === 'fy27-places' && !isConfirmed && (
+                          <span style={{ color: '#d97706' }}> Allocation opens 1 July 2026.</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Lender Income Assessment */}
       <div style={{ marginTop: '1.5rem' }}>
