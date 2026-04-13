@@ -428,54 +428,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Upcoming Expenses */}
-      {upcoming && upcoming.expenses.length > 0 && (
-        <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>Upcoming Expenses</h2>
-          <div style={styles.card}>
-            <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.75rem' }}>
-              {upcoming.matched_count} of {upcoming.total_count} recurring expenses paid this month.
-              {upcoming.total_upcoming > 0 && (
-                <span style={{ fontWeight: 600, color: '#1a1a1a' }}> {formatCurrency(upcoming.total_upcoming)} still to come.</span>
-              )}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '0.5rem' }}>
-              {upcoming.expenses.map((exp) => (
-                <div key={exp.id} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0.5rem 0.75rem',
-                  background: exp.matched ? '#f0fdf4' : '#fafaf7',
-                  borderRadius: 8,
-                  border: `1px solid ${exp.matched ? '#bbf7d0' : '#e8e6df'}`,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: exp.category_color, flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.875rem', color: '#374151' }}>{exp.name}</span>
-                    {exp.frequency !== 'monthly' && (
-                      <span style={{ fontSize: '0.6875rem', color: '#9ca3af', background: '#f3f4f6', padding: '1px 6px', borderRadius: 4 }}>{exp.frequency}</span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color: exp.matched ? '#166534' : '#374151' }}>
-                      {formatCurrency(exp.matched ? exp.matched_amount : exp.monthly_equivalent)}
-                    </span>
-                    <span style={{ fontSize: '0.75rem', color: exp.matched ? '#166534' : '#9ca3af' }}>
-                      {exp.matched ? '\u2713' : 'pending'}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #e8e6df', fontSize: '0.875rem' }}>
-              <span style={{ color: '#6b7280' }}>Monthly total (known recurring)</span>
-              <span style={{ fontWeight: 700, color: '#1a1a1a' }}>{formatCurrency(upcoming.total_expected)}</span>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Broker Readiness Score */}
       <div style={styles.section}>
         <h2 style={styles.sectionTitle}>Broker Readiness</h2>

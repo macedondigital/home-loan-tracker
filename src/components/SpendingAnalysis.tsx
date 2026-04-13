@@ -41,6 +41,30 @@ interface UploadResult {
   duplicate_count: number;
 }
 
+interface UpcomingExpense {
+  id: number;
+  name: string;
+  amount: number;
+  frequency: string;
+  category: string;
+  category_label: string;
+  category_color: string;
+  monthly_equivalent: number;
+  matched: boolean;
+  matched_amount: number;
+  matched_date: string | null;
+}
+
+interface UpcomingData {
+  month: string;
+  expenses: UpcomingExpense[];
+  total_expected: number;
+  total_matched: number;
+  total_upcoming: number;
+  matched_count: number;
+  total_count: number;
+}
+
 const PROBLEM_CATEGORIES = ['uber-eats', 'amazon', 'eating-out'];
 
 function formatCurrency(amount: number, decimals = 0): string {
@@ -68,6 +92,7 @@ export default function SpendingAnalysis() {
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   const [uploadError, setUploadError] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  const [upcoming, setUpcoming] = useState<UpcomingData | null>(null);
   const [loading, setLoading] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -84,12 +109,14 @@ export default function SpendingAnalysis() {
 
   const fetchMonthData = useCallback(async (month: string) => {
     if (!month) return;
-    const [sumRes, txnRes] = await Promise.all([
+    const [sumRes, txnRes, upRes] = await Promise.all([
       fetch(`/api/summary?month=${month}`).then((r) => r.json()),
       fetch(`/api/transactions?month=${month}`).then((r) => r.json()),
+      fetch(`/api/recurring-expenses/upcoming?month=${month}`).then((r) => r.json()).catch(() => ({ success: false })),
     ]);
     if (sumRes.success) setSummary(sumRes.data);
     if (txnRes.success) setTransactions(txnRes.data);
+    if (upRes.success) setUpcoming(upRes.data);
   }, []);
 
   const fetchTrend = useCallback(async (monthList: MonthOption[]) => {
@@ -184,7 +211,9 @@ export default function SpendingAnalysis() {
 
   const totalSpent = summary?.categories.reduce((s, c) => s + c.actual, 0) ?? 0;
   const projectedTotal = summary?.categories.reduce((s, c) => s + c.projected, 0) ?? 0;
-  const txnCount = transactions.length;
+  const knownRecurring = upcoming?.total_expected ?? 0;
+  const stillToCome = upcoming?.total_upcoming ?? 0;
+  const discretionarySpent = Math.max(0, totalSpent - (upcoming?.total_matched ?? 0));
 
   return (
     <div>
@@ -247,17 +276,75 @@ export default function SpendingAnalysis() {
               <div style={s.metricLabel}>Projected Month Total</div>
               <div style={s.metricValue}>{formatCurrency(projectedTotal)}</div>
             </div>
-            <div style={s.metricCard}>
-              <div style={s.metricLabel}>Transactions</div>
-              <div style={s.metricValue}>{txnCount}</div>
-            </div>
             {summary.income.total > 0 && (
               <div style={s.metricCard}>
                 <div style={s.metricLabel}>Income</div>
                 <div style={{ ...s.metricValue, color: '#166534' }}>{formatCurrency(summary.income.total)}</div>
               </div>
             )}
+            <div style={s.metricCard}>
+              <div style={s.metricLabel}>Known Recurring</div>
+              <div style={s.metricValue}>{formatCurrency(knownRecurring)}</div>
+            </div>
+            <div style={s.metricCard}>
+              <div style={s.metricLabel}>Still to Come</div>
+              <div style={{ ...s.metricValue, color: stillToCome > 0 ? '#d97706' : '#166534' }}>
+                {formatCurrency(stillToCome)}
+              </div>
+            </div>
+            <div style={s.metricCard}>
+              <div style={s.metricLabel}>Discretionary Spent</div>
+              <div style={s.metricValue}>{formatCurrency(discretionarySpent)}</div>
+            </div>
           </div>
+
+          {/* Recurring Expenses */}
+          {upcoming && upcoming.expenses.length > 0 && (
+            <div style={s.section}>
+              <h2 style={s.sectionTitle}>Recurring Expenses</h2>
+              <div style={s.card}>
+                <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.75rem' }}>
+                  {upcoming.matched_count} of {upcoming.total_count} paid.
+                  {upcoming.total_upcoming > 0 && (
+                    <span style={{ fontWeight: 600, color: '#1a1a1a' }}> {formatCurrency(upcoming.total_upcoming)} still to come.</span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '0.5rem' }}>
+                  {upcoming.expenses.map((exp) => (
+                    <div key={exp.id} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.5rem 0.75rem',
+                      background: exp.matched ? '#f0fdf4' : '#fafaf7',
+                      borderRadius: 8,
+                      border: `1px solid ${exp.matched ? '#bbf7d0' : '#e8e6df'}`,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: exp.category_color, flexShrink: 0 }} />
+                        <span style={{ fontSize: '0.875rem', color: '#374151' }}>{exp.name}</span>
+                        {exp.frequency !== 'monthly' && (
+                          <span style={{ fontSize: '0.6875rem', color: '#9ca3af', background: '#f3f4f6', padding: '1px 6px', borderRadius: 4 }}>{exp.frequency}</span>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '0.875rem', fontWeight: 600, color: exp.matched ? '#166534' : '#374151' }}>
+                          {formatCurrency(exp.matched ? exp.matched_amount : exp.monthly_equivalent)}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: exp.matched ? '#166534' : '#9ca3af' }}>
+                          {exp.matched ? '\u2713' : 'pending'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #e8e6df', fontSize: '0.875rem' }}>
+                  <span style={{ color: '#6b7280' }}>Monthly total (known recurring)</span>
+                  <span style={{ fontWeight: 700, color: '#1a1a1a' }}>{formatCurrency(upcoming.total_expected)}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Category Breakdown */}
           <div style={s.section}>
