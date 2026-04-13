@@ -88,6 +88,16 @@ interface UpcomingData {
   total_count: number;
 }
 
+interface SavingsAnalysis {
+  net_monthly_savings: number;
+  balance_change_raw: number;
+  balance_change_adjusted: number;
+  excluded_outflows: Array<{ description: string; amount: number; date: string }>;
+  total_excluded: number;
+  months_analysed: number;
+  genuine_savings_trend: 'positive' | 'flat' | 'negative';
+}
+
 const BUFFER_TARGET = 62000;
 const SETTLEMENT_DATE = new Date('2026-10-01');
 const PROBLEM_CATEGORIES = ['uber-eats', 'amazon', 'eating-out'];
@@ -190,6 +200,7 @@ export default function Dashboard() {
   const [uploadHistory, setUploadHistory] = useState<UploadRecord[]>([]);
   const [allCategorySummary, setAllCategorySummary] = useState<CategorySummary[]>([]);
   const [upcoming, setUpcoming] = useState<UpcomingData | null>(null);
+  const [savings, setSavings] = useState<SavingsAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
@@ -197,7 +208,7 @@ export default function Dashboard() {
       const now = new Date();
       const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-      const [balRes, readyRes, mileRes, monthsRes, balHistRes, uploadsRes, upcomingRes] = await Promise.all([
+      const [balRes, readyRes, mileRes, monthsRes, balHistRes, uploadsRes, upcomingRes, savingsRes] = await Promise.all([
         fetch('/api/balances').then((r) => r.json()),
         fetch('/api/readiness').then((r) => r.json()),
         fetch('/api/milestones').then((r) => r.json()),
@@ -205,6 +216,7 @@ export default function Dashboard() {
         fetch('/api/balances/history').then((r) => r.json()),
         fetch('/api/uploads').then((r) => r.json()),
         fetch(`/api/recurring-expenses/upcoming?month=${currentMonth}`).then((r) => r.json()).catch(() => ({ success: false })),
+        fetch('/api/savings-analysis').then((r) => r.json()).catch(() => ({ success: false })),
       ]);
 
       if (balRes.success && balRes.data) {
@@ -219,6 +231,7 @@ export default function Dashboard() {
       if (balHistRes.success) setBalanceHistory(balHistRes.data);
       if (uploadsRes.success) setUploadHistory(uploadsRes.data);
       if (upcomingRes.success) setUpcoming(upcomingRes.data);
+      if (savingsRes.success) setSavings(savingsRes.data);
 
       const lastUploadRes = await fetch('/api/uploads/latest').then((r) => r.json()).catch(() => ({ success: false }));
       if (lastUploadRes.success && lastUploadRes.data) setLastUpload(lastUploadRes.data);
@@ -373,6 +386,35 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* Genuine Savings */}
+      {savings && savings.months_analysed > 0 && (
+        <div style={{
+          ...styles.card,
+          marginTop: '1rem',
+          background: savings.genuine_savings_trend === 'positive' ? '#f0fdf4' :
+                     savings.genuine_savings_trend === 'flat' ? '#fffbeb' : '#fef2f2',
+        }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.025em', marginBottom: '0.5rem' }}>
+            Genuine Savings
+          </div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1a1a1a' }}>
+            Net monthly savings: {formatCurrency(savings.net_monthly_savings)}
+          </div>
+          {savings.total_excluded > 0 && (
+            <div style={{ fontSize: '0.8125rem', color: '#374151', marginTop: '0.375rem' }}>
+              Adjusted balance trend: {savings.balance_change_adjusted >= 0 ? '+' : ''}{formatCurrency(savings.balance_change_adjusted)} (after excluding {formatCurrency(savings.total_excluded)} in{' '}
+              {savings.excluded_outflows.length === 1 ? 'a large payment' : 'large payments'})
+            </div>
+          )}
+          {savings.genuine_savings_trend === 'positive' && (
+            <div style={{ fontSize: '0.8125rem', color: '#166534', marginTop: '0.375rem' }}>Savings pattern is healthy</div>
+          )}
+          <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.375rem' }}>
+            Based on {savings.months_analysed} month{savings.months_analysed !== 1 ? 's' : ''} of transaction data
+          </div>
+        </div>
+      )}
 
       {/* Balance Input */}
       <div style={styles.section}>
