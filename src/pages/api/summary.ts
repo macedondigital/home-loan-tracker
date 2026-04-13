@@ -129,6 +129,15 @@ export const GET: APIRoute = async ({ url }) => {
     const incomeRow = incomeResult.results[0] as Record<string, unknown> | undefined;
     const incomeTotal = (incomeRow?.total as number) || 0;
 
+    // HEM benchmark: living expenses excluding rent
+    const hemBenchmark = 3100;
+    const actualLivingExpenses = Math.round(
+      categories
+        .filter((c) => c.id !== 'rent')
+        .reduce((sum, c) => sum + c.actual, 0) * 100
+    ) / 100;
+    const hemGap = Math.round((actualLivingExpenses - hemBenchmark) * 100) / 100;
+
     return new Response(JSON.stringify({
       success: true,
       data: {
@@ -140,6 +149,11 @@ export const GET: APIRoute = async ({ url }) => {
           total: Math.round(incomeTotal * 100) / 100,
           count: (incomeRow?.count as number) || 0,
         },
+        hem_benchmark: hemBenchmark,
+        hem_household_type: 'Single parent, 2 dependants, regional Victoria',
+        actual_living_expenses: actualLivingExpenses,
+        expenses_vs_hem: actualLivingExpenses > hemBenchmark ? 'above' : 'below',
+        hem_gap: hemGap,
       },
     }), {
       headers: { 'Content-Type': 'application/json' },

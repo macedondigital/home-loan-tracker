@@ -23,6 +23,11 @@ interface SummaryData {
   max_transaction_day: number;
   categories: CategorySummary[];
   income: { total: number; count: number };
+  hem_benchmark: number;
+  hem_household_type: string;
+  actual_living_expenses: number;
+  expenses_vs_hem: 'above' | 'below';
+  hem_gap: number;
 }
 
 interface Transaction {
@@ -304,6 +309,49 @@ export default function SpendingAnalysis() {
               <div style={s.metricValue}>{formatCurrency(discretionarySpent)}</div>
             </div>
           </div>
+
+          {/* Broker Expense Benchmark */}
+          {summary.hem_benchmark > 0 && (
+            <div style={s.section}>
+              <h2 style={s.sectionTitle}>Broker Expense Benchmark</h2>
+              <div style={s.card}>
+                {(() => {
+                  const actual = summary.actual_living_expenses;
+                  const hem = summary.hem_benchmark;
+                  const maxVal = Math.max(actual, hem * 1.5);
+                  const actualPct = Math.min((actual / maxVal) * 100, 100);
+                  const hemPct = (hem / maxVal) * 100;
+                  const barColor = actual <= hem ? '#166534' : actual <= hem * 1.2 ? '#d97706' : '#dc2626';
+
+                  return (
+                    <>
+                      <div style={{ position: 'relative' as const, height: 32, background: '#f3f4f6', borderRadius: 6, marginBottom: '0.75rem', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${actualPct}%`, background: barColor, borderRadius: 6, transition: 'width 0.3s' }} />
+                        <div style={{ position: 'absolute' as const, left: `${hemPct}%`, top: 0, bottom: 0, width: 2, background: '#1a1a1a' }} />
+                        <div style={{ position: 'absolute' as const, left: `${hemPct}%`, top: -18, fontSize: '0.625rem', color: '#6b7280', transform: 'translateX(-50%)', whiteSpace: 'nowrap' as const }}>
+                          HEM {formatCurrency(hem)}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '0.8125rem', color: '#374151', lineHeight: 1.6 }}>
+                        {actual > hem ? (
+                          <>
+                            Your living expenses: <strong>{formatCurrency(actual)}</strong> (excluding rent). Broker will use this figure. Every $100/month reduction increases borrowing by approximately $12,000.
+                          </>
+                        ) : (
+                          <>
+                            Your living expenses (<strong>{formatCurrency(actual)}</strong>) are below the HEM benchmark ({formatCurrency(hem)}). Broker will use HEM as the floor.
+                          </>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.6875rem', color: '#9ca3af', marginTop: '0.5rem' }}>
+                        HEM = Household Expenditure Measure. Excludes housing costs. Based on {summary.hem_household_type.toLowerCase()}.
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
 
           {/* Recurring Expenses */}
           {upcoming && upcoming.expenses.length > 0 && (
