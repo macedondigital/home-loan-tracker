@@ -26,11 +26,18 @@ export const GET: APIRoute = async () => {
       add_back_other: number;
     }>;
 
-    const assessables: number[] = [];
-    for (const r of records) {
-      if (r.trust_distribution > 0) {
-        assessables.push(r.trust_distribution + r.add_back_depreciation + r.add_back_super + r.add_back_one_off + r.add_back_other);
-      }
+    // Only use completed years (FY24/FY25) for lender assessment
+    const completedYears = records.filter((r) =>
+      (r.financial_year === 'FY24' || r.financial_year === 'FY25') && r.trust_distribution > 0
+    );
+    const assessables = completedYears.map((r) =>
+      r.trust_distribution + r.add_back_depreciation + r.add_back_super + r.add_back_one_off + r.add_back_other
+    );
+
+    let fy25Assessable = 0;
+    const fy25Record = records.find((r) => r.financial_year === 'FY25' && r.trust_distribution > 0);
+    if (fy25Record) {
+      fy25Assessable = fy25Record.trust_distribution + fy25Record.add_back_depreciation + fy25Record.add_back_super + fy25Record.add_back_one_off + fy25Record.add_back_other;
     }
 
     if (assessables.length > 0) {
@@ -83,6 +90,23 @@ export const GET: APIRoute = async () => {
     const incomeNeededMonthly = targetMonthlySurplus + declaredExpenses;
     const incomeNeededForTarget = Math.ceil(incomeNeededMonthly * 12 / 1000) * 1000;
 
+    // FY25-only max loan (if broker can secure a lender that weights recent year)
+    let fy25MaxLoan = 0;
+    if (fy25Assessable > 0) {
+      const fy25MonthlyIncome = Math.round(fy25Assessable / 12);
+      const fy25Surplus = fy25MonthlyIncome - declaredExpenses;
+      if (fy25Surplus > 0) {
+        const fy25Repayment = Math.round(fy25Surplus * 0.95);
+        fy25MaxLoan = fy25Repayment * ((1 - Math.pow(1 + r, -loanTermMonths)) / r);
+        fy25MaxLoan = Math.floor(fy25MaxLoan / 5000) * 5000;
+      }
+    }
+
+    // Average of completed years
+    const averageAssessable = assessables.length >= 2
+      ? Math.round(assessables.reduce((a, b) => a + b, 0) / assessables.length)
+      : 0;
+
     return new Response(JSON.stringify({
       success: true,
       data: {
@@ -99,6 +123,9 @@ export const GET: APIRoute = async () => {
         target_loan: targetLoan,
         target_achievable: maxLoan >= targetLoan,
         income_needed_for_target: incomeNeededForTarget,
+        fy25_max_loan: fy25MaxLoan,
+        fy25_assessable: fy25Assessable,
+        average_assessable: averageAssessable,
       },
     }), {
       headers: { 'Content-Type': 'application/json' },

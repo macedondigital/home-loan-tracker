@@ -1,15 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getDB } from '../../lib/db';
 
-interface FhgCriterion {
-  id: string;
-  label: string;
-  detail: string | null;
-  criterion_type: string;
-  confirmed: number;
-  confirmed_at: string | null;
-}
-
 export const GET: APIRoute = async () => {
   try {
     const db = getDB();
@@ -19,37 +10,9 @@ export const GET: APIRoute = async () => {
        ORDER BY ROWID ASC`
     ).all();
 
-    const criteria = result.results as FhgCriterion[];
-
-    // Auto-compute income-cap criterion
-    const incomeCap = criteria.find((c) => c.id === 'income-cap');
-    if (incomeCap) {
-      const incomeResult = await db.prepare(
-        `SELECT personal_taxable_income FROM income_records
-         WHERE personal_taxable_income > 0
-         ORDER BY financial_year DESC LIMIT 1`
-      ).all();
-
-      if (incomeResult.results.length > 0) {
-        const taxableIncome = (incomeResult.results[0] as { personal_taxable_income: number }).personal_taxable_income;
-        (incomeCap as any).computed_value = taxableIncome;
-        if (taxableIncome < 125000) {
-          (incomeCap as any).confirmed = 1;
-          (incomeCap as any).status = 'met';
-        } else {
-          (incomeCap as any).confirmed = 0;
-          (incomeCap as any).status = 'failed';
-        }
-      } else {
-        (incomeCap as any).computed_value = null;
-        (incomeCap as any).confirmed = 0;
-        (incomeCap as any).status = 'unknown';
-      }
-    }
-
     return new Response(JSON.stringify({
       success: true,
-      data: criteria,
+      data: result.results,
     }), {
       headers: { 'Content-Type': 'application/json' },
     });
@@ -78,21 +41,13 @@ export const PATCH: APIRoute = async ({ request }) => {
 
     const db = getDB();
 
-    // Check if this is a computed criterion
     const existing = await db.prepare(
-      `SELECT criterion_type FROM fhg_eligibility WHERE id = ?`
+      `SELECT id FROM fhg_eligibility WHERE id = ?`
     ).bind(id).all();
 
     if (existing.results.length === 0) {
       return new Response(JSON.stringify({ success: false, error: 'Criterion not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    if ((existing.results[0] as { criterion_type: string }).criterion_type === 'computed') {
-      return new Response(JSON.stringify({ success: false, error: 'Cannot manually update a computed criterion' }), {
-        status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }

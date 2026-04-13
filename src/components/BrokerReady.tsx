@@ -34,10 +34,13 @@ interface IncomeRecord {
 interface IncomeAssessment {
   fy24: { trust_distribution: number; add_backs_total: number; assessable: number } | null;
   fy25: { trust_distribution: number; add_backs_total: number; assessable: number } | null;
+  fy26: { trust_distribution: number; add_backs_total: number; assessable: number; annualised: number } | null;
   lender_annual_income: number;
   lender_monthly_income: number;
+  constraining_year: string | null;
+  current_year_annualised: number;
   data_completeness: 'full' | 'partial' | 'empty';
-  income_sufficient_for_target: boolean;
+  basis_mismatch: boolean;
 }
 
 interface FhgCriterion {
@@ -46,8 +49,6 @@ interface FhgCriterion {
   detail: string | null;
   criterion_type: string;
   confirmed: number;
-  status?: 'met' | 'failed' | 'unknown';
-  computed_value?: number | null;
 }
 
 interface BorrowingCapacity {
@@ -64,6 +65,9 @@ interface BorrowingCapacity {
   target_loan: number;
   target_achievable: boolean;
   income_needed_for_target: number;
+  fy25_max_loan: number;
+  fy25_assessable: number;
+  average_assessable: number;
 }
 
 function formatCurrency(amount: number): string {
@@ -160,7 +164,6 @@ export default function BrokerReady() {
   };
 
   const toggleFhg = async (criterion: FhgCriterion) => {
-    if (criterion.criterion_type === 'computed') return;
     const newConfirmed = criterion.confirmed ? 0 : 1;
     setFhgCriteria((prev) =>
       prev.map((c) => c.id === criterion.id ? { ...c, confirmed: newConfirmed } : c)
@@ -226,62 +229,39 @@ export default function BrokerReady() {
       {/* FHG Eligibility */}
       {fhgCriteria.length > 0 && (
         <div style={{ marginTop: '1.5rem' }}>
-          <h2 style={s.sectionTitle}>FHG Eligibility</h2>
+          <h2 style={s.sectionTitle}>Family Home Guarantee (Single Parent)</h2>
           <div style={s.card}>
             <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.75rem' }}>
               {fhgCriteria.filter((c) => c.confirmed).length} of {fhgCriteria.length} criteria confirmed
             </div>
-            {fhgCriteria.map((c, i) => {
-              const isComputed = c.criterion_type === 'computed';
-              const isConfirmed = c.confirmed === 1;
-              const isFailed = isComputed && c.status === 'failed';
-              const isUnknown = isComputed && (c.status === 'unknown' || !c.status);
-
-              return (
-                <div
-                  key={c.id}
-                  onClick={() => toggleFhg(c)}
-                  style={{
-                    display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.625rem 0',
-                    borderBottom: i < fhgCriteria.length - 1 ? '1px solid #f3f4f6' : 'none',
-                    cursor: isComputed ? 'default' : 'pointer',
-                    userSelect: 'none' as const,
-                  }}
-                >
-                  <span style={{
-                    fontSize: '1rem', fontWeight: 700, width: 20, flexShrink: 0,
-                    color: isFailed ? '#dc2626' : isConfirmed ? '#166534' : '#9ca3af',
-                  }}>
-                    {isFailed ? '\u2717' : isConfirmed ? '\u2713' : '?'}
-                  </span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.875rem', fontWeight: 500, color: '#374151', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' as const }}>
-                      {c.label}
-                      {isComputed && (
-                        <span style={{ fontSize: '10px', color: '#9ca3af', fontWeight: 400, background: '#f3f4f6', padding: '1px 5px', borderRadius: 3 }}>auto</span>
-                      )}
-                    </div>
-                    {isComputed && c.id === 'income-cap' && (
-                      <div style={{ fontSize: '0.75rem', color: isUnknown ? '#9ca3af' : isFailed ? '#dc2626' : '#166534', marginTop: 2 }}>
-                        {isUnknown
-                          ? 'Enter taxable income in the income section below'
-                          : c.computed_value != null
-                          ? `Taxable income: ${formatCurrency(c.computed_value)} (${c.computed_value < 125000 ? 'under' : 'exceeds'} $125,000 cap)`
-                          : ''}
-                      </div>
-                    )}
-                    {!isComputed && c.detail && (
-                      <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: 2 }}>
-                        {c.detail}
-                        {c.id === 'fy27-places' && !isConfirmed && (
-                          <span style={{ color: '#d97706' }}> Allocation opens 1 July 2026.</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
+            {fhgCriteria.map((c, i) => (
+              <div
+                key={c.id}
+                onClick={() => toggleFhg(c)}
+                style={{
+                  display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.625rem 0',
+                  borderBottom: i < fhgCriteria.length - 1 ? '1px solid #f3f4f6' : 'none',
+                  cursor: 'pointer',
+                  userSelect: 'none' as const,
+                }}
+              >
+                <span style={{
+                  fontSize: '1rem', fontWeight: 700, width: 20, flexShrink: 0,
+                  color: c.confirmed ? '#166534' : '#9ca3af',
+                }}>
+                  {c.confirmed ? '\u2713' : '?'}
+                </span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>{c.label}</div>
+                  {c.detail && (
+                    <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: 2 }}>{c.detail}</div>
+                  )}
                 </div>
-              );
-            })}
+              </div>
+            ))}
+            <div style={{ background: '#f0fdf4', padding: '0.625rem 0.75rem', borderRadius: 8, marginTop: '0.5rem', fontSize: '0.8125rem', color: '#166534' }}>
+              No income cap. Unlimited places. No waitlist. Previous property ownership OK.
+            </div>
           </div>
         </div>
       )}
@@ -292,23 +272,30 @@ export default function BrokerReady() {
         {assessment?.data_completeness === 'empty' ? (
           <div style={{ ...s.card, background: '#f8fafc' }}>
             <div style={{ fontSize: '0.875rem', color: '#6b7280', lineHeight: 1.6 }}>
-              Enter your trust distribution and add back figures from your tax returns to calculate what a broker will assess as your income.
+              Enter your trust profit and add back figures from your tax returns to calculate what a broker will assess as your income.
             </div>
           </div>
         ) : null}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.75rem', marginTop: assessment?.data_completeness === 'empty' ? '0.75rem' : 0 }}>
-          {['FY24', 'FY25'].map((fy) => {
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', marginTop: assessment?.data_completeness === 'empty' ? '0.75rem' : 0 }}>
+          {[
+            { fy: 'FY24', subtitle: '(Completed)' },
+            { fy: 'FY25', subtitle: '(Completed)' },
+            { fy: 'FY26', subtitle: '(Current year, interim)' },
+          ].map(({ fy, subtitle }) => {
             const rec = getRecord(fy);
             return (
               <div key={fy} style={s.card}>
-                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>{fy}</div>
-                <IncomeInput label="Trust distribution" value={rec.trust_distribution} onChange={(v) => updateIncomeField(fy, 'trust_distribution', v)} />
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>{fy}</div>
+                  <div style={{ fontSize: '0.6875rem', color: '#9ca3af' }}>{subtitle}</div>
+                </div>
+                <IncomeInput label="Trust profit" value={rec.trust_distribution} onChange={(v) => updateIncomeField(fy, 'trust_distribution', v)} />
                 <IncomeInput label="Add back: Depreciation" value={rec.add_back_depreciation} onChange={(v) => updateIncomeField(fy, 'add_back_depreciation', v)} />
                 <IncomeInput label="Add back: Super contributions" value={rec.add_back_super} onChange={(v) => updateIncomeField(fy, 'add_back_super', v)} />
                 <IncomeInput label="Add back: One off expenses" value={rec.add_back_one_off} onChange={(v) => updateIncomeField(fy, 'add_back_one_off', v)} />
                 <IncomeInput label="Add back: Other" value={rec.add_back_other} onChange={(v) => updateIncomeField(fy, 'add_back_other', v)} />
                 <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '0.5rem', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.8125rem', color: '#6b7280' }}>Assessable income</span>
+                  <span style={{ fontSize: '0.8125rem', color: '#6b7280' }}>Assessable</span>
                   <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1a1a1a' }}>
                     {formatCurrency(rec.trust_distribution + rec.add_back_depreciation + rec.add_back_super + rec.add_back_one_off + rec.add_back_other)}
                   </span>
@@ -318,24 +305,40 @@ export default function BrokerReady() {
           })}
         </div>
         {assessment && assessment.data_completeness !== 'empty' && (
-          <div style={{ ...s.card, marginTop: '0.75rem', background: assessment.lender_annual_income >= 150000 ? '#f0fdf4' : assessment.lender_annual_income >= 100000 ? '#fffbeb' : '#fef2f2' }}>
+          <div style={{ ...s.card, marginTop: '0.75rem' }}>
             <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#1a1a1a' }}>
-              Lender assessed income (lower of 2 years): {formatCurrency(assessment.lender_annual_income)}/year ({formatCurrency(assessment.lender_monthly_income)}/month)
+              Lender assessed income (lower of FY24/FY25): {formatCurrency(assessment.lender_annual_income)}/year ({formatCurrency(assessment.lender_monthly_income)}/month)
             </div>
             <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{
                 width: 10, height: 10, borderRadius: '50%',
-                background: assessment.lender_annual_income >= 150000 ? '#166534' : assessment.lender_annual_income >= 100000 ? '#f59e0b' : '#dc2626',
+                background: capacity && capacity.target_achievable ? '#166534' : assessment.lender_annual_income >= 100000 ? '#f59e0b' : '#dc2626',
               }} />
               <span style={{ fontSize: '0.8125rem', color: '#6b7280' }}>
-                {assessment.lender_annual_income >= 150000 ? 'Income likely sufficient for $735K target' :
+                {capacity && capacity.target_achievable ? 'Income sufficient for $735K target' :
                  assessment.lender_annual_income >= 100000 ? 'Income may be tight for $735K target' :
-                 'Income likely insufficient for $735K target'}
+                 'Income insufficient for $735K target on lower of two years'}
               </span>
+            </div>
+            {assessment.current_year_annualised > 0 && (
+              <div style={{ marginTop: '0.5rem', fontSize: '0.8125rem', color: '#166534' }}>
+                FY26 tracking at: {formatCurrency(assessment.current_year_annualised)} annualised
+              </div>
+            )}
+            <div style={{ marginTop: '0.75rem', fontSize: '0.8125rem', color: '#6b7280', lineHeight: 1.6 }}>
+              Most lenders use the lower of two completed financial years.{' '}
+              {assessment.constraining_year && assessment.fy24 && assessment.fy25 && (
+                <>{assessment.constraining_year} ({formatCurrency(assessment.constraining_year === 'FY24' ? assessment.fy24.assessable : assessment.fy25.assessable)}) is currently the constraining year. Your broker may find lenders that weight recent performance or use an average. The strong FY25 and FY26 trend supports this.</>
+              )}
             </div>
             {assessment.data_completeness === 'partial' && (
               <div style={{ marginTop: '0.5rem', fontSize: '0.8125rem', color: '#d97706', background: '#fffbeb', padding: '0.5rem 0.75rem', borderRadius: 8 }}>
                 Only one year of data. Most lenders require two years for trust income. This restricts your lender panel.
+              </div>
+            )}
+            {assessment.basis_mismatch && (
+              <div style={{ marginTop: '0.5rem', fontSize: '0.8125rem', color: '#92400e', background: '#fffbeb', padding: '0.5rem 0.75rem', borderRadius: 8 }}>
+                Basis mismatch: FY24/FY25 are accrual, FY26 is cash. Ask your accountant to prepare the FY26 interim P&L on the same basis as your tax returns.
               </div>
             )}
           </div>
@@ -365,7 +368,17 @@ export default function BrokerReady() {
 
             {!capacity.target_achievable && (
               <div style={{ background: '#fef2f2', padding: '0.75rem', borderRadius: 8, marginBottom: '1rem', fontSize: '0.8125rem', color: '#991b1b' }}>
-                You would need ~{formatCurrency(capacity.income_needed_for_target)} annual income to borrow {formatCurrency(capacity.target_loan)}
+                <div>You would need ~{formatCurrency(capacity.income_needed_for_target)} annual income to borrow {formatCurrency(capacity.target_loan)}</div>
+                {capacity.fy25_assessable > 0 && capacity.fy25_assessable > capacity.lender_annual_income && assessment && (
+                  <div style={{ marginTop: '0.5rem', color: '#374151' }}>
+                    Using {assessment.constraining_year} ({formatCurrency(capacity.lender_annual_income)}) as the lower year. If your broker can secure a lender that uses FY25 ({formatCurrency(capacity.fy25_assessable)} assessable){capacity.average_assessable > 0 ? ` or an average of both years (${formatCurrency(capacity.average_assessable)})` : ''}, the {formatCurrency(capacity.target_loan)} target becomes achievable.
+                  </div>
+                )}
+                {capacity.fy25_max_loan > 0 && (
+                  <div style={{ marginTop: '0.375rem', color: '#166534', fontWeight: 500 }}>
+                    If assessed on FY25 alone: max borrowing ~{formatCurrency(capacity.fy25_max_loan)}
+                  </div>
+                )}
               </div>
             )}
 
