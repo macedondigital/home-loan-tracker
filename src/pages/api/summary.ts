@@ -39,11 +39,73 @@ export const GET: APIRoute = async ({ url }) => {
     const daysInMonth = new Date(year, mon, 0).getDate();
     const maxDay = (dateRange.results[0] as Record<string, unknown>)?.max_day as number || daysInMonth;
 
+    // Fetch recurring expenses for hybrid projection
+    interface RecurringItem { pattern: string; monthlyEq: number }
+    let recurringByCategory: Record<string, RecurringItem[]> = {};
+    try {
+      const recurringResult = await db.prepare(
+        `SELECT category, amount, frequency, match_pattern FROM recurring_expenses WHERE active = 1`
+      ).all();
+      for (const row of recurringResult.results as Record<string, unknown>[]) {
+        const cat = row.category as string;
+        const amount = row.amount as number;
+        const freq = row.frequency as string;
+        const monthlyEq = freq === 'fortnightly' ? amount * 26 / 12
+          : freq === 'quarterly' ? amount / 3
+          : amount;
+        if (!recurringByCategory[cat]) {
+          recurringByCategory[cat] = [];
+        }
+        recurringByCategory[cat].push({ pattern: row.match_pattern as string, monthlyEq });
+      }
+    } catch {
+      // Table may not exist yet; fall back to linear projection
+      recurringByCategory = {};
+    }
+
+    // Fetch all transactions for matching recurring expenses
+    let allTxns: Record<string, unknown>[] = [];
+    if (Object.keys(recurringByCategory).length > 0) {
+      const txnResult = await db.prepare(
+        `SELECT description, amount, COALESCE(category_override, category) as effective_category
+         FROM transactions WHERE month_key = ? AND amount < 0`
+      ).bind(month).all();
+      allTxns = txnResult.results as Record<string, unknown>[];
+    }
+
     const categories = (result.results as Record<string, unknown>[]).map((row) => {
       const catId = row.effective_category as string;
       const actual = Math.abs(row.total as number);
-      const projected = maxDay < daysInMonth ? actual * daysInMonth / maxDay : actual;
       const target = CATEGORY_TARGETS[catId] ?? null;
+
+      let projected: number;
+      const recurringItems = recurringByCategory[catId];
+
+      if (recurringItems && recurringItems.length > 0 && maxDay < daysInMonth) {
+        // Hybrid projection: separate recurring from variable spending
+        const catTxns = allTxns.filter((t) => t.effective_category === catId);
+        let matchedRecurring = 0;
+        let unmatchedExpected = 0;
+
+        for (const item of recurringItems) {
+          const patternLower = item.pattern.toLowerCase();
+          const matched = catTxns.filter((t) =>
+            (t.description as string).toLowerCase().includes(patternLower)
+          );
+          if (matched.length > 0) {
+            matchedRecurring += matched.reduce((sum, t) => sum + Math.abs(t.amount as number), 0);
+          } else {
+            unmatchedExpected += item.monthlyEq;
+          }
+        }
+
+        const variableActual = Math.max(0, actual - matchedRecurring);
+        const variableProjected = variableActual * daysInMonth / maxDay;
+        projected = matchedRecurring + unmatchedExpected + variableProjected;
+      } else {
+        // Full month data or no recurring info: use linear projection
+        projected = maxDay < daysInMonth ? actual * daysInMonth / maxDay : actual;
+      }
 
       return {
         id: catId,
