@@ -113,9 +113,9 @@ export const GET: APIRoute = async () => {
       },
       {
         id: 'noas-ready',
-        label: 'FY23 24 and FY24 25 NOAs ready',
-        pass: milestoneMap.get('meet-accountant') === 1,
-        detail: 'Accountant meeting completed, NOAs in progress',
+        label: 'FY24 and FY25 NOAs ready',
+        pass: milestoneMap.get('meet-accountant') === 1 && milestoneMap.get('fy25-noa') === 1,
+        detail: milestoneMap.get('fy25-noa') === 1 ? 'Both NOAs received' : 'FY25 NOA still needed',
       },
       {
         id: 'zero-uber',
