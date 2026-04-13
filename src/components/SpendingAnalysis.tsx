@@ -315,7 +315,7 @@ export default function SpendingAnalysis() {
                           onChange={(e) => handleCategoryChange(txn.id, e.target.value)}
                           style={s.catSelect}
                         >
-                          {ALL_CATEGORY_IDS.map((catId) => (
+                          {[...ALL_CATEGORY_IDS].sort((a, b) => (CATEGORY_LABELS[a] ?? a).localeCompare(CATEGORY_LABELS[b] ?? b)).map((catId) => (
                             <option key={catId} value={catId}>{CATEGORY_LABELS[catId] ?? catId}</option>
                           ))}
                         </select>
