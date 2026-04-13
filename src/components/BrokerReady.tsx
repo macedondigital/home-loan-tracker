@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface Criterion {
   id: string;
@@ -21,6 +21,25 @@ interface Document {
   required_for_preapproval: number;
 }
 
+interface IncomeRecord {
+  financial_year: string;
+  trust_distribution: number;
+  personal_taxable_income: number;
+  add_back_depreciation: number;
+  add_back_super: number;
+  add_back_one_off: number;
+  add_back_other: number;
+}
+
+interface IncomeAssessment {
+  fy24: { trust_distribution: number; add_backs_total: number; assessable: number } | null;
+  fy25: { trust_distribution: number; add_backs_total: number; assessable: number } | null;
+  lender_annual_income: number;
+  lender_monthly_income: number;
+  data_completeness: 'full' | 'partial' | 'empty';
+  income_sufficient_for_target: boolean;
+}
+
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-AU', {
     style: 'currency', currency: 'AUD',
@@ -31,15 +50,27 @@ function formatCurrency(amount: number): string {
 export default function BrokerReady() {
   const [readiness, setReadiness] = useState<ReadinessData | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [incomeRecords, setIncomeRecords] = useState<IncomeRecord[]>([]);
+  const [assessment, setAssessment] = useState<IncomeAssessment | null>(null);
   const [loading, setLoading] = useState(true);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const fetchAssessment = useCallback(async () => {
+    const res = await fetch('/api/income/assessment').then((r) => r.json());
+    if (res.success) setAssessment(res.data);
+  }, []);
 
   useEffect(() => {
     Promise.all([
       fetch('/api/readiness').then((r) => r.json()),
       fetch('/api/documents').then((r) => r.json()),
-    ]).then(([readyRes, docsRes]) => {
+      fetch('/api/income').then((r) => r.json()),
+      fetch('/api/income/assessment').then((r) => r.json()),
+    ]).then(([readyRes, docsRes, incomeRes, assessRes]) => {
       if (readyRes.success) setReadiness(readyRes.data);
       if (docsRes.success) setDocuments(docsRes.data);
+      if (incomeRes.success) setIncomeRecords(incomeRes.data);
+      if (assessRes.success) setAssessment(assessRes.data);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -64,6 +95,32 @@ export default function BrokerReady() {
         prev.map((d) => d.id === doc.id ? { ...d, status: doc.status, checked: doc.checked } : d)
       );
     }
+  };
+
+  const updateIncomeField = (fy: string, field: keyof IncomeRecord, value: string) => {
+    const numVal = parseFloat(value) || 0;
+    setIncomeRecords((prev) =>
+      prev.map((r) => r.financial_year === fy ? { ...r, [field]: numVal } : r)
+    );
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      const record = incomeRecords.find((r) => r.financial_year === fy);
+      if (!record) return;
+      const updated = { ...record, [field]: numVal };
+      await fetch('/api/income', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      });
+      await fetchAssessment();
+    }, 500);
+  };
+
+  const getRecord = (fy: string): IncomeRecord => {
+    return incomeRecords.find((r) => r.financial_year === fy) || {
+      financial_year: fy, trust_distribution: 0, personal_taxable_income: 0,
+      add_back_depreciation: 0, add_back_super: 0, add_back_one_off: 0, add_back_other: 0,
+    };
   };
 
   if (loading) {
@@ -109,6 +166,62 @@ export default function BrokerReady() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Lender Income Assessment */}
+      <div style={{ marginTop: '1.5rem' }}>
+        <h2 style={s.sectionTitle}>Lender Income Assessment</h2>
+        {assessment?.data_completeness === 'empty' ? (
+          <div style={{ ...s.card, background: '#f8fafc' }}>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280', lineHeight: 1.6 }}>
+              Enter your trust distribution and add back figures from your tax returns to calculate what a broker will assess as your income.
+            </div>
+          </div>
+        ) : null}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.75rem', marginTop: assessment?.data_completeness === 'empty' ? '0.75rem' : 0 }}>
+          {['FY24', 'FY25'].map((fy) => {
+            const rec = getRecord(fy);
+            return (
+              <div key={fy} style={s.card}>
+                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>{fy}</div>
+                <IncomeInput label="Trust distribution" value={rec.trust_distribution} onChange={(v) => updateIncomeField(fy, 'trust_distribution', v)} />
+                <IncomeInput label="Add back: Depreciation" value={rec.add_back_depreciation} onChange={(v) => updateIncomeField(fy, 'add_back_depreciation', v)} />
+                <IncomeInput label="Add back: Super contributions" value={rec.add_back_super} onChange={(v) => updateIncomeField(fy, 'add_back_super', v)} />
+                <IncomeInput label="Add back: One off expenses" value={rec.add_back_one_off} onChange={(v) => updateIncomeField(fy, 'add_back_one_off', v)} />
+                <IncomeInput label="Add back: Other" value={rec.add_back_other} onChange={(v) => updateIncomeField(fy, 'add_back_other', v)} />
+                <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '0.5rem', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.8125rem', color: '#6b7280' }}>Assessable income</span>
+                  <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1a1a1a' }}>
+                    {formatCurrency(rec.trust_distribution + rec.add_back_depreciation + rec.add_back_super + rec.add_back_one_off + rec.add_back_other)}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {assessment && assessment.data_completeness !== 'empty' && (
+          <div style={{ ...s.card, marginTop: '0.75rem', background: assessment.lender_annual_income >= 150000 ? '#f0fdf4' : assessment.lender_annual_income >= 100000 ? '#fffbeb' : '#fef2f2' }}>
+            <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#1a1a1a' }}>
+              Lender assessed income (lower of 2 years): {formatCurrency(assessment.lender_annual_income)}/year ({formatCurrency(assessment.lender_monthly_income)}/month)
+            </div>
+            <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{
+                width: 10, height: 10, borderRadius: '50%',
+                background: assessment.lender_annual_income >= 150000 ? '#166534' : assessment.lender_annual_income >= 100000 ? '#f59e0b' : '#dc2626',
+              }} />
+              <span style={{ fontSize: '0.8125rem', color: '#6b7280' }}>
+                {assessment.lender_annual_income >= 150000 ? 'Income likely sufficient for $735K target' :
+                 assessment.lender_annual_income >= 100000 ? 'Income may be tight for $735K target' :
+                 'Income likely insufficient for $735K target'}
+              </span>
+            </div>
+            {assessment.data_completeness === 'partial' && (
+              <div style={{ marginTop: '0.5rem', fontSize: '0.8125rem', color: '#d97706', background: '#fffbeb', padding: '0.5rem 0.75rem', borderRadius: 8 }}>
+                Only one year of data. Most lenders require two years for trust income. This restricts your lender panel.
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Borrowing Capacity */}
@@ -183,6 +296,36 @@ export default function BrokerReady() {
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function IncomeInput({ label, value, onChange }: { label: string; value: number; onChange: (v: string) => void }) {
+  const [focused, setFocused] = useState(false);
+  const [display, setDisplay] = useState(value > 0 ? String(value) : '');
+
+  useEffect(() => {
+    if (!focused) {
+      setDisplay(value > 0 ? String(value) : '');
+    }
+  }, [value, focused]);
+
+  return (
+    <div style={{ marginBottom: '0.5rem' }}>
+      <label style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block', marginBottom: 2 }}>{label}</label>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <span style={{ fontSize: '0.875rem', color: '#9ca3af' }}>$</span>
+        <input
+          type="text"
+          inputMode="numeric"
+          value={display}
+          placeholder="0"
+          onFocus={() => { setFocused(true); setDisplay(value > 0 ? String(value) : ''); }}
+          onBlur={() => { setFocused(false); }}
+          onChange={(e) => { setDisplay(e.target.value); onChange(e.target.value); }}
+          style={{ width: '100%', padding: '0.375rem 0.5rem', fontSize: '0.875rem', border: '1px solid #d1d5db', borderRadius: 6, outline: 'none' }}
+        />
       </div>
     </div>
   );
