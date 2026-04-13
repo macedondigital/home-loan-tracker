@@ -70,6 +70,31 @@ interface BorrowingCapacity {
   average_assessable: number;
 }
 
+interface LenderResult {
+  id: string;
+  name: string;
+  tier: string;
+  is_participating_lender: boolean;
+  assessment_method: string;
+  accepts_one_year: boolean;
+  best_case_income: number;
+  best_case_max_loan: number;
+  best_case_achievable: boolean;
+  conservative_income: number;
+  conservative_max_loan: number;
+  conservative_achievable: boolean;
+  one_year_policy_note: string | null;
+  trust_income_note: string | null;
+  rate_premium_note: string | null;
+  general_notes: string | null;
+  likelihood: 'high' | 'medium' | 'low' | 'not_applicable';
+}
+
+interface LenderData {
+  lenders: LenderResult[];
+  summary: { participating_achievable: number; participating_total: number; target_loan: number };
+}
+
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-AU', {
     style: 'currency', currency: 'AUD',
@@ -84,6 +109,8 @@ export default function BrokerReady() {
   const [assessment, setAssessment] = useState<IncomeAssessment | null>(null);
   const [capacity, setCapacity] = useState<BorrowingCapacity | null>(null);
   const [fhgCriteria, setFhgCriteria] = useState<FhgCriterion[]>([]);
+  const [lenderData, setLenderData] = useState<LenderData | null>(null);
+  const [expandedLenders, setExpandedLenders] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -104,13 +131,15 @@ export default function BrokerReady() {
       fetch('/api/income/assessment').then((r) => r.json()),
       fetch('/api/borrowing-capacity').then((r) => r.json()),
       fetch('/api/fhg-eligibility').then((r) => r.json()),
-    ]).then(([readyRes, docsRes, incomeRes, assessRes, capRes, fhgRes]) => {
+      fetch('/api/lender-comparison').then((r) => r.json()),
+    ]).then(([readyRes, docsRes, incomeRes, assessRes, capRes, fhgRes, lenderRes]) => {
       if (readyRes.success) setReadiness(readyRes.data);
       if (docsRes.success) setDocuments(docsRes.data);
       if (incomeRes.success) setIncomeRecords(incomeRes.data);
       if (assessRes.success) setAssessment(assessRes.data);
       if (capRes.success) setCapacity(capRes.data);
       if (fhgRes.success) setFhgCriteria(fhgRes.data);
+      if (lenderRes.success) setLenderData(lenderRes.data);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -404,6 +433,107 @@ export default function BrokerReady() {
           </div>
         )}
       </div>
+
+      {/* Lender Comparison */}
+      {lenderData && lenderData.lenders.length > 0 && (
+        <div style={{ marginTop: '1.5rem' }}>
+          <h2 style={s.sectionTitle}>Lender Comparison</h2>
+          <div style={{ fontSize: '0.8125rem', color: '#6b7280', marginBottom: '1rem', lineHeight: 1.5 }}>
+            Estimated borrowing capacity by lender, based on your actual income data. All participating lenders qualify for the Family Home Guarantee (2% deposit, no LMI).
+          </div>
+          <div style={{ fontSize: '0.875rem', color: '#374151', marginBottom: '0.5rem' }}>
+            <strong>{lenderData.summary.participating_achievable}</strong> of {lenderData.summary.participating_total} participating lenders estimated to achieve {formatCurrency(lenderData.summary.target_loan)} target on best case assessment
+          </div>
+          <div style={{ fontSize: '0.8125rem', color: '#166534', marginBottom: '1.25rem' }}>
+            Recommended first approach: NAB (existing relationship, one year assessment, FHG participating lender)
+          </div>
+          {[
+            { label: 'Major Banks (Participating Lenders)', tiers: ['major', 'major_sub'] },
+            { label: 'Regional Banks (Participating Lenders)', tiers: ['regional'] },
+            { label: 'Non Bank Lenders (NOT FHG eligible)', tiers: ['non_bank'] },
+          ].map((group) => {
+            const groupLenders = lenderData.lenders.filter((l) => group.tiers.includes(l.tier));
+            if (groupLenders.length === 0) return null;
+            return (
+              <div key={group.label} style={{ marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                  {group.label}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '0.5rem' }}>
+                  {groupLenders.map((lender) => {
+                    const expanded = expandedLenders.has(lender.id);
+                    const likelihoodStyle: Record<string, { bg: string; color: string; label: string }> = {
+                      high: { bg: '#f0fdf4', color: '#166534', label: 'STRONG FIT' },
+                      medium: { bg: '#fffbeb', color: '#92400e', label: 'POSSIBLE' },
+                      low: { bg: '#fef2f2', color: '#991b1b', label: 'UNLIKELY' },
+                      not_applicable: { bg: '#f3f4f6', color: '#6b7280', label: 'NO FHG' },
+                    };
+                    const badge = likelihoodStyle[lender.likelihood];
+                    const methodLabels: Record<string, string> = {
+                      one_year_or_lower_two: 'Can assess on FY25 only (best case) or lower of FY24/FY25 (conservative)',
+                      manual_assessment: 'Manual credit assessment, outcome depends on credit manager',
+                      lower_two_or_average: 'Likely averages or uses lower of two years',
+                      flexible_one_year: 'Flexible one year assessment available',
+                      flexible_alt_doc: 'Alternative documentation accepted',
+                    };
+
+                    return (
+                      <div key={lender.id} style={s.card}>
+                        {!lender.is_participating_lender && (
+                          <div style={{ background: '#fef2f2', color: '#991b1b', fontSize: '0.75rem', padding: '0.375rem 0.625rem', borderRadius: 6, marginBottom: '0.75rem' }}>
+                            Not a Family Home Guarantee participating lender. Using this lender means losing 2% deposit and no LMI benefits.
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' as const }}>
+                          <span style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#1a1a1a' }}>{lender.name}</span>
+                          <span style={{ background: badge.bg, color: badge.color, fontSize: '0.625rem', fontWeight: 700, padding: '2px 6px', borderRadius: 4, letterSpacing: '0.025em' }}>
+                            {badge.label}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '0.25rem', marginBottom: '0.375rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem' }}>
+                            <span style={{ color: lender.best_case_achievable ? '#166534' : '#dc2626', fontWeight: 700, fontSize: '0.75rem' }}>
+                              {lender.best_case_achievable ? '\u2713' : '\u2717'}
+                            </span>
+                            <span style={{ color: '#374151' }}>Best case: <strong>{formatCurrency(lender.best_case_max_loan)}</strong></span>
+                            <span style={{ color: '#9ca3af', fontSize: '0.6875rem' }}>({formatCurrency(lender.best_case_income)} income)</span>
+                          </div>
+                          {lender.best_case_income !== lender.conservative_income && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem' }}>
+                              <span style={{ color: lender.conservative_achievable ? '#166534' : '#dc2626', fontWeight: 700, fontSize: '0.75rem' }}>
+                                {lender.conservative_achievable ? '\u2713' : '\u2717'}
+                              </span>
+                              <span style={{ color: '#374151' }}>Conservative: <strong>{formatCurrency(lender.conservative_max_loan)}</strong></span>
+                              <span style={{ color: '#9ca3af', fontSize: '0.6875rem' }}>({formatCurrency(lender.conservative_income)} income)</span>
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '0.6875rem', color: '#9ca3af', marginBottom: '0.375rem' }}>
+                          {methodLabels[lender.assessment_method] || lender.assessment_method}
+                        </div>
+                        <div
+                          onClick={(e) => { e.stopPropagation(); setExpandedLenders((prev) => { const next = new Set(prev); if (next.has(lender.id)) next.delete(lender.id); else next.add(lender.id); return next; }); }}
+                          style={{ fontSize: '0.6875rem', color: '#6b7280', cursor: 'pointer', userSelect: 'none' as const }}
+                        >
+                          {expanded ? '\u25BC Details' : '\u25B6 Details'}
+                        </div>
+                        {expanded && (
+                          <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#6b7280', lineHeight: 1.6, display: 'flex', flexDirection: 'column' as const, gap: '0.375rem' }}>
+                            {lender.one_year_policy_note && <div><strong style={{ color: '#374151' }}>Income policy:</strong> {lender.one_year_policy_note}</div>}
+                            {lender.trust_income_note && <div><strong style={{ color: '#374151' }}>Trust income:</strong> {lender.trust_income_note}</div>}
+                            {lender.rate_premium_note && <div><strong style={{ color: '#374151' }}>Rates:</strong> {lender.rate_premium_note}</div>}
+                            {lender.general_notes && <div><strong style={{ color: '#374151' }}>Notes:</strong> {lender.general_notes}</div>}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Documents Checklist */}
       <div style={{ marginTop: '1.5rem' }}>
