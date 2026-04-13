@@ -39,14 +39,14 @@ export const CATEGORIES: Category[] = [
   {
     id: 'groceries',
     label: 'Groceries',
-    target: null,
+    target: 1200,
     color: '#166534',
     patterns: [/coles/i, /woolworths/i, /a to z meats/i, /fresh food/i],
   },
   {
     id: 'fuel',
     label: 'Fuel',
-    target: null,
+    target: 80,
     color: '#6b7280',
     patterns: [/\bbp\b/i, /ampol/i, /apco/i, /\bshell\b/i, /mobil/i, /reddy express/i, /mortimer petrol/i],
   },
@@ -64,7 +64,7 @@ export const CATEGORIES: Category[] = [
   {
     id: 'kids',
     label: 'Kids activities',
-    target: null,
+    target: 400,
     color: '#0891b2',
     patterns: [
       /adventure park/i, /bounce/i, /flip out/i, /geelong ninjas/i,
@@ -84,7 +84,7 @@ export const CATEGORIES: Category[] = [
   {
     id: 'health',
     label: 'Health / pharmacy',
-    target: null,
+    target: 200,
     color: '#ec4899',
     patterns: [
       /amcal/i, /pharmac/i, /chemist/i, /medicann/i, /instant script/i,
@@ -123,14 +123,14 @@ export const CATEGORIES: Category[] = [
   {
     id: 'kids-clothes',
     label: 'Kids clothes',
-    target: null,
+    target: 200,
     color: '#06b6d4',
     patterns: [/cotton on kids/i, /best & less/i, /pumpkin patch/i, /seed heritage/i],
   },
   {
     id: 'holiday',
     label: 'Holiday',
-    target: null,
+    target: 0,
     color: '#2563eb',
     patterns: [/airbnb/i, /booking\.com/i, /wotif/i, /jetstar/i, /qantas/i, /virgin australia/i, /webjet/i],
   },
