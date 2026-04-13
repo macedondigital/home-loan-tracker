@@ -40,6 +40,22 @@ interface IncomeAssessment {
   income_sufficient_for_target: boolean;
 }
 
+interface BorrowingCapacity {
+  max_loan: number;
+  monthly_income: number;
+  income_source: 'trust_assessment' | 'fallback_drawings';
+  lender_annual_income: number;
+  actual_monthly_expenses: number;
+  hem_benchmark: number;
+  declared_expenses: number;
+  monthly_surplus: number;
+  max_monthly_repayment: number;
+  assessment_rate: number;
+  target_loan: number;
+  target_achievable: boolean;
+  income_needed_for_target: number;
+}
+
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-AU', {
     style: 'currency', currency: 'AUD',
@@ -52,12 +68,17 @@ export default function BrokerReady() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [incomeRecords, setIncomeRecords] = useState<IncomeRecord[]>([]);
   const [assessment, setAssessment] = useState<IncomeAssessment | null>(null);
+  const [capacity, setCapacity] = useState<BorrowingCapacity | null>(null);
   const [loading, setLoading] = useState(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchAssessment = useCallback(async () => {
-    const res = await fetch('/api/income/assessment').then((r) => r.json());
-    if (res.success) setAssessment(res.data);
+    const [assessRes, capRes] = await Promise.all([
+      fetch('/api/income/assessment').then((r) => r.json()),
+      fetch('/api/borrowing-capacity').then((r) => r.json()),
+    ]);
+    if (assessRes.success) setAssessment(assessRes.data);
+    if (capRes.success) setCapacity(capRes.data);
   }, []);
 
   useEffect(() => {
@@ -66,11 +87,13 @@ export default function BrokerReady() {
       fetch('/api/documents').then((r) => r.json()),
       fetch('/api/income').then((r) => r.json()),
       fetch('/api/income/assessment').then((r) => r.json()),
-    ]).then(([readyRes, docsRes, incomeRes, assessRes]) => {
+      fetch('/api/borrowing-capacity').then((r) => r.json()),
+    ]).then(([readyRes, docsRes, incomeRes, assessRes, capRes]) => {
       if (readyRes.success) setReadiness(readyRes.data);
       if (docsRes.success) setDocuments(docsRes.data);
       if (incomeRes.success) setIncomeRecords(incomeRes.data);
       if (assessRes.success) setAssessment(assessRes.data);
+      if (capRes.success) setCapacity(capRes.data);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -227,26 +250,51 @@ export default function BrokerReady() {
       {/* Borrowing Capacity */}
       <div style={{ marginTop: '1.5rem' }}>
         <h2 style={s.sectionTitle}>Estimated Borrowing Capacity</h2>
-        <div style={s.capacityGrid}>
-          <CapacityCard
-            scenario="Conservative"
-            amount={425000}
-            detail="Based on minimum income verification and higher expenses"
-            color="#dc2626"
-          />
-          <CapacityCard
-            scenario="Moderate"
-            amount={600000}
-            detail="Based on standard income verification with clean banking"
-            color="#d97706"
-          />
-          <CapacityCard
-            scenario="Strong"
-            amount={780000}
-            detail="Based on full income verification, clean banking, and low expenses"
-            color="#166534"
-          />
-        </div>
+        {capacity && (
+          <div style={s.card}>
+            <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#1a1a1a', marginBottom: '0.25rem' }}>
+              {formatCurrency(capacity.max_loan)}
+            </div>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
+              Based on {formatCurrency(capacity.lender_annual_income)} annual assessed income at {Math.round(capacity.assessment_rate * 100)}% buffer rate
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <span style={{ fontSize: '1rem', color: capacity.target_achievable ? '#166534' : '#dc2626' }}>
+                {capacity.target_achievable ? '\u2713' : '\u2717'}
+              </span>
+              <span style={{ fontSize: '0.9375rem', fontWeight: 500, color: capacity.target_achievable ? '#166534' : '#dc2626' }}>
+                Target: {formatCurrency(capacity.target_loan)}
+              </span>
+            </div>
+
+            {!capacity.target_achievable && (
+              <div style={{ background: '#fef2f2', padding: '0.75rem', borderRadius: 8, marginBottom: '1rem', fontSize: '0.8125rem', color: '#991b1b' }}>
+                You would need ~{formatCurrency(capacity.income_needed_for_target)} annual income to borrow {formatCurrency(capacity.target_loan)}
+              </div>
+            )}
+
+            {capacity.income_source === 'fallback_drawings' && (
+              <div style={{ background: '#fffbeb', padding: '0.75rem', borderRadius: 8, marginBottom: '1rem', fontSize: '0.8125rem', color: '#92400e' }}>
+                Using $6,000/month from owner's drawings. Enter your trust income data in the section above for an accurate estimate.
+              </div>
+            )}
+
+            <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '0.75rem' }}>
+              <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: '0.5rem' }}>Breakdown</div>
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '0.25rem' }}>
+                <BreakdownRow label="Monthly income" value={formatCurrency(capacity.monthly_income)} />
+                <BreakdownRow label="Declared expenses" value={`${formatCurrency(capacity.declared_expenses)} ${capacity.actual_monthly_expenses < capacity.hem_benchmark ? '(HEM floor)' : '(actual)'}`} />
+                <BreakdownRow label="Monthly surplus" value={formatCurrency(capacity.monthly_surplus)} />
+                <BreakdownRow label={`Max repayment (at ${Math.round(capacity.assessment_rate * 100)}%)`} value={formatCurrency(capacity.max_monthly_repayment)} />
+              </div>
+            </div>
+
+            <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: '#9ca3af' }}>
+              This is an estimate only. Your broker Simon will run a formal serviceability assessment with specific lender criteria.
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Documents Checklist */}
@@ -331,18 +379,11 @@ function IncomeInput({ label, value, onChange }: { label: string; value: number;
   );
 }
 
-function CapacityCard({ scenario, amount, detail, color }: {
-  scenario: string; amount: number; detail: string; color: string;
-}) {
+function BreakdownRow({ label, value }: { label: string; value: string }) {
   return (
-    <div style={s.capCard}>
-      <div style={{ fontSize: '0.75rem', fontWeight: 600, color, textTransform: 'uppercase' as const, letterSpacing: '0.025em' }}>
-        {scenario}
-      </div>
-      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1a1a1a', margin: '0.25rem 0' }}>
-        {formatCurrency(amount)}
-      </div>
-      <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{detail}</div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+      <span style={{ color: '#6b7280' }}>{label}</span>
+      <span style={{ fontWeight: 500, color: '#374151' }}>{value}</span>
     </div>
   );
 }
@@ -358,12 +399,6 @@ const s: Record<string, React.CSSProperties> = {
   sectionTitle: {
     fontFamily: "Georgia, 'Times New Roman', serif", fontSize: '1.125rem',
     color: '#1a1a1a', marginBottom: '0.75rem',
-  },
-  capacityGrid: {
-    display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem',
-  },
-  capCard: {
-    background: 'white', border: '1px solid #e8e6df', borderRadius: 12, padding: '1.25rem',
   },
   docRow: {
     display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 0',
