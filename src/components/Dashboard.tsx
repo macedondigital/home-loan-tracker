@@ -25,6 +25,8 @@ interface MilestoneData {
   detail: string | null;
   target_date: string | null;
   completed: number;
+  overdue: boolean;
+  days_overdue: number;
 }
 
 interface MonthSummary {
@@ -132,33 +134,45 @@ function buildNextMoves(
   problemSpending: CategorySummary[],
 ): NextMove[] {
   const moves: NextMove[] = [];
+
+  // 1. Upload prompt (urgent/red)
   if (uploadDays === null) {
     moves.push({ title: 'Upload your first bank statement', description: 'You need 3+ months of clean data for the broker.', priority: 'urgent' });
   } else if (uploadDays > 7) {
     moves.push({ title: 'Upload your bank statement', description: `${uploadDays} days since last upload. Keep the data flowing weekly.`, priority: 'urgent' });
   }
+
+  // 2. Overdue milestones (urgent/red), sorted earliest first
+  const overdueMilestones = milestones
+    .filter((m) => m.overdue && !m.completed)
+    .sort((a, b) => (a.target_date || '').localeCompare(b.target_date || ''));
+  for (const m of overdueMilestones) {
+    moves.push({ title: m.label, description: `${m.days_overdue} days overdue. ${m.detail || 'This is blocking pre-approval.'}`, priority: 'urgent' });
+  }
+
+  // 3. Spending over target (important/amber)
   for (const cat of problemSpending) {
     if (cat.target !== null && cat.over_target) {
       if (cat.id === 'uber-eats') {
-        moves.push({ title: 'Stop Uber Eats', description: `${formatCurrency(cat.actual)} this month. Target is $0. This is a red flag for brokers.`, priority: 'urgent' });
+        moves.push({ title: 'Stop Uber Eats', description: `${formatCurrency(cat.actual)} this month. Target is $0. This is a red flag for brokers.`, priority: 'important' });
       } else {
         moves.push({ title: `Cut ${cat.label} spending`, description: `${formatCurrency(cat.actual)} this month (target ${formatCurrency(cat.target)}). Projected: ${formatCurrency(cat.projected)}.`, priority: 'important' });
       }
     }
   }
+
+  // 4. Upcoming milestones due this or next month, not overdue (normal/green)
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const nextMonth = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`;
   for (const m of milestones) {
-    if (!m.completed && m.target_date && m.target_date <= currentMonth) {
-      moves.push({ title: m.label, description: m.detail || 'Due this month.', priority: 'important' });
+    if (!m.completed && !m.overdue && m.target_date && m.target_date <= nextMonth) {
+      moves.push({ title: m.label, description: m.detail || 'Due soon.', priority: 'normal' });
     }
   }
-  for (const cat of problemSpending) {
-    if (cat.target !== null && !cat.over_target && cat.actual > 0) {
-      moves.push({ title: `Watch ${cat.label} spending`, description: `${formatCurrency(cat.actual)} of ${formatCurrency(cat.target)} target used.`, priority: 'info' });
-    }
-  }
-  return moves.slice(0, 6);
+
+  return moves.slice(0, 5);
 }
 
 export default function Dashboard() {

@@ -1,269 +1,544 @@
-# PLAN.md — Home by October Dashboard
+# PLAN.md: Home by October V2 Improvements
 
-## Build phases
-
-### Phase 1: Project scaffolding, GitHub, D1, and first deploy
-
-**Tasks:**
-- Initialise Astro 5 project with React integration and Tailwind CSS
-- Verify `wrangler` is installed and authenticated (if not: `npm install -g wrangler` then `wrangler login` and prompt Will to complete browser auth)
-- Verify `gh` CLI is installed and authenticated (if not: prompt Will to install/auth)
-- Create GitHub repo: `gh repo create home-loan-tracker --public --source=. --push`
-- Create D1 database: `wrangler d1 create home-loan-tracker`
-- Capture the `database_id` from the output and write it into `wrangler.toml`
-- Configure `wrangler.toml` with D1 binding, compatibility flags, and Pages config
-- Create `migrations/0001_init.sql` with full database schema (all tables from CLAUDE.md)
-- Run migrations locally: `wrangler d1 execute home-loan-tracker --local --file=migrations/0001_init.sql`
-- Run migrations on remote: `wrangler d1 execute home-loan-tracker --remote --file=migrations/0001_init.sql`
-- Configure `astro.config.mjs` with `@astrojs/cloudflare` adapter
-- Create `src/lib/db.ts` helper for D1 access from Astro API routes
-- Create a test API route `GET /api/health` that queries D1 and returns `{ ok: true, tables: [...] }`
-- Create seed script to insert the 9 milestones and 10 document checklist items into D1
-- Run seed on remote D1
-- Build the project: `npm run build`
-- Deploy to Cloudflare Pages: `wrangler pages deploy dist/`
-- Generate a random 32-char hex string for APP_SECRET and set it: `wrangler pages secret put APP_SECRET`
-- Prompt Will to choose a password, then set it: `wrangler pages secret put APP_PASSWORD`
-- Git commit and push: `git add -A && git commit -m "feat: phase 1 — project scaffolding, D1, first deploy" && git push`
-- Verify the deployed URL returns the health check successfully
-
-**Acceptance criteria:**
-- GitHub repo exists at github.com/macedondigital/home-loan-tracker
-- `wrangler d1 list` shows the home-loan-tracker database
-- All tables exist in remote D1 (verified via health endpoint)
-- Milestones and documents are seeded in remote D1
-- Site is live on Cloudflare Pages at home-loan-tracker.pages.dev
-- Health endpoint returns `{ ok: true }` on the live URL
-- Secrets APP_PASSWORD and APP_SECRET are set in Cloudflare Pages
-
-**On completion:** "Phase 1 complete. Next Phase 2: Authentication middleware"
+9 phases. Each builds on the last. Phases 5 and 6 are tightly coupled (6 reads income data from 5). Run in order.
 
 ---
 
-### Phase 2: Authentication middleware
+## Phase 1: Overdue milestone flagging and next moves reprioritisation
 
-**Tasks:**
-- Create `src/pages/login.astro` with a single password field and submit button
-- Create `src/middleware.ts` that checks for `hbo-session` cookie
-- Create `POST /api/auth/login` endpoint that validates password against `APP_PASSWORD` env var
-- On success: set signed httpOnly secure cookie with 30-day expiry
-- On failure: return to login with error message
-- Redirect all non-login routes to `/login` if no valid session
-- Create `POST /api/auth/logout` endpoint that clears the cookie
-- Add logout button to main layout
+**Why**: "Meet accountant" (Feb 2026) and "Get interim P&L signed" (Mar 2026) are past due and on the critical path for pre approval. The UI treats them identically to future milestones. "Your next moves" on the Overview prioritises spending cuts over these blockers, which is the wrong order.
 
-**Acceptance criteria:**
-- Visiting any page without a session redirects to `/login`
-- Entering correct password sets cookie and redirects to `/`
-- Entering wrong password shows error, stays on login page
-- Cookie persists across page refreshes for 30 days
-- Logout clears cookie and redirects to login
-- API routes return 401 without valid session cookie
+**Files to modify**:
+- `src/pages/api/milestones/index.ts`
+- `src/components/Timeline.tsx`
+- `src/components/Dashboard.tsx`
 
-**On completion:** "Phase 2 complete. Next Phase 3: CSV upload and transaction storage"
+**Implementation**:
 
----
+`api/milestones/index.ts`: After fetching all milestones, compute two additional fields for each:
+- `overdue`: boolean. True when `completed === 0` AND `target_date` (format `YYYY-MM`) is before the current `YYYY-MM`. Compare as strings since the format is lexicographically sortable.
+- `days_overdue`: number. If overdue, calculate days between the 1st of the `target_date` month and today. If not overdue, return 0.
 
-### Phase 3: CSV upload and transaction storage
+Add these to each milestone object in the response. Do not change the DB schema.
 
-**Tasks:**
-- Create `src/lib/categories.ts` with the full categorisation engine (regex patterns, targets, colours) as an exportable config object
-- Create `src/lib/csv-parser.ts` with the Bank Australia CSV parser
-- Create `POST /api/upload` endpoint:
-  - Accepts multipart form data with CSV file
-  - Parses using csv-parser
-  - Categorises each transaction using categories engine
-  - Generates `month_key` (YYYY-MM) for each transaction
-  - Inserts with `INSERT OR IGNORE` using the UNIQUE constraint for deduplication
-  - Returns `{ new_count, duplicate_count, total }`
-- Create `GET /api/transactions?month=YYYY-MM` endpoint
-- Create `GET /api/months` endpoint (returns distinct month_keys with transaction counts)
-- Create `PATCH /api/transactions/:id` endpoint for category overrides
-- Log each upload to the `uploads` table
+`Timeline.tsx`: For each milestone row where `overdue === true && completed === 0`:
+- Add a red badge inline with the label: text "OVERDUE", styled `{ background: '#fef2f2', color: '#dc2626', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', marginLeft: '8px' }`
+- Add subtle left border to the row: `borderLeft: '3px solid #dc2626'`
+- Show days overdue count in the detail text area: e.g., "42 days overdue"
+- Completed milestones and future milestones render unchanged
 
-**Acceptance criteria:**
-- Uploading Will's actual March CSV (`StatementCsv.csv`) successfully parses all 75 transactions
-- Each transaction is assigned a category matching the expected output (verified against the mid-March and full-March analyses from the conversation)
-- Uploading the same CSV twice: second upload returns `new_count: 0, duplicate_count: 75`
-- Uploading a CSV that partially overlaps (e.g. full March after uploading partial March): only new transactions are inserted
-- `GET /api/transactions?month=2026-03` returns all March transactions sorted by date descending
-- `GET /api/months` returns `[{ month_key: "2026-03", count: 75 }]`
-- Category override via PATCH persists and is returned in subsequent GETs
-- Income transactions (positive amounts) are categorised as "income"
-- Uber Eats transactions match: "UBER *EATS", "POS #xxxxxx-UBER *EATS HELP.UBER.COM"
-- Upload endpoint rejects non-CSV files with appropriate error message
+`Dashboard.tsx`: The "Your next moves" section (around line 100 to 200, look for the numbered list with green circles) currently hardcodes spending warnings and static milestone references. Refactor to:
+1. Fetch milestones from `/api/milestones` in the existing `useEffect` data fetch
+2. Build the next moves list dynamically:
+   - First: overdue uncompleted milestones, sorted by `target_date` ascending (earliest overdue first). Use red numbered circles instead of green.
+   - Second: spending categories currently over target (existing logic for Retail, Eating out, etc). Use amber numbered circles.
+   - Third: upcoming uncompleted milestones due this month or next month (not overdue). Use green numbered circles.
+3. Cap the list at 5 items maximum
 
-**On completion:** "Phase 3 complete. Next Phase 4: Dashboard overview page"
+**Acceptance criteria**:
+- [ ] `GET /api/milestones` response includes `overdue` and `days_overdue` for each milestone
+- [ ] "Meet accountant" returns `overdue: true` with `days_overdue` approximately 60+ (it was due Feb 2026, now Apr 2026)
+- [ ] "Pay $54k overdue ATO" returns `overdue: false` (completed, regardless of date)
+- [ ] Timeline tab shows red OVERDUE badge on "Meet accountant" and "Get interim P&L signed"
+- [ ] Timeline tab does NOT show badge on completed milestones or future milestones
+- [ ] "Your next moves" on Overview lists overdue milestones before spending warnings
+- [ ] "Book mortgage broker" (Apr 2026, not overdue yet if current month) appears after spending items
+- [ ] Numbered circles use red for overdue, amber for spending, green for upcoming
+- [ ] Mobile (375px) renders badges and list without overflow or truncation
+
+✅ Phase 1 complete. Next → Phase 2: Expand category spending targets
 
 ---
 
-### Phase 4: Dashboard overview page
+## Phase 2: Expand category spending targets
 
-**Tasks:**
-- Create main layout `src/layouts/Layout.astro` with:
-  - Navigation: Overview, Spending, Timeline, Broker Ready
-  - "Plan D" header with "Home by October" title
-  - Footer with the quote
-  - Mobile responsive nav (hamburger or tab bar)
-- Create `src/pages/index.astro` with React island for the dashboard
-- Create `src/components/Dashboard.tsx` React component:
-  - **Balance cards:** Bank Australia, NAB Business, Combined, Buffer after $62k
-  - **Balance inputs:** Two number fields that save to D1 via `POST /api/balances`
-  - **Weekly check-in card:** Days since last upload, weekly spending summary for problem categories
-  - **Broker readiness score:** Out of 10, circular progress ring, pass/fail list
-  - **Timeline progress bar:** Shows X/9 milestones complete
-  - **Problem categories trend chart:** Stacked bar using Recharts showing Uber Eats, Amazon, Eating out across all months
-- Create `POST /api/balances` and `GET /api/balances` endpoints
-- Create `GET /api/readiness` endpoint that calculates the 10-point score from live data
-- Create `GET /api/summary?month=YYYY-MM` endpoint that returns category totals, projections, and targets
+**Why**: Only Retail ($150) and Eating out ($200) have targets. Groceries ($676 this month, no target) and Kids clothes ($366, no target) have no accountability. Adding targets to all major discretionary categories gives full spending visibility.
 
-**Acceptance criteria:**
-- Dashboard loads and displays all sections without errors
-- Balance inputs save to D1 and persist across page reloads
-- Balance inputs update the combined total and buffer cards in real time
-- Weekly check-in correctly calculates days since last upload from the `uploads` table
-- Readiness score correctly evaluates all 10 criteria against actual data
-- Trend chart displays all available months with correct category totals
-- Mobile: all cards stack vertically, chart is horizontally scrollable if needed, text is readable at 375px
-- All currency values are formatted with $ prefix and comma separators
-- No floating point artifacts in any displayed number
+**Files to modify**:
+- `src/lib/categories.ts` (modify `CATEGORY_TARGETS` map)
 
-**On completion:** "Phase 4 complete. Update CLAUDE.md with current state and append to SESSION_LOG.md. Next Phase 5: Spending analysis page"
+**Implementation**:
 
----
+Locate the `CATEGORY_TARGETS` object/map in `categories.ts`. Add these entries (keeping existing retail and eating_out targets):
 
-### Phase 5: Spending analysis page
+| Category ID | Target | Rationale |
+|---|---|---|
+| groceries | 1200 | ~$300/week for a family of three |
+| kids_clothes | 200 | Seasonal variance but caps impulse buys |
+| kids_activities | 400 | Reasonable activities budget |
+| holiday | 0 | Zero until settlement (actively saving) |
+| fuel | 80 | Low usage based on transaction history |
+| health | 200 | Necessary but bounded |
 
-**Tasks:**
-- Create `src/pages/spending.astro` with React island
-- Create `src/components/SpendingAnalysis.tsx`:
-  - **Month selector dropdown** populated from `/api/months`
-  - **Summary metrics row:** Total spent, Projected month total, Transaction count
-  - **Category breakdown table** with:
-    - Category name and colour dot
-    - Actual spend (sum)
-    - Projected spend (actual * days_in_month / max_transaction_day)
-    - Target amount
-    - Progress bar with target marker (black line)
-    - Bar turns red when projected to exceed target
-  - **Month-over-month trend chart** (Uber Eats, Amazon, Eating out across all months)
-  - **CSV upload zone** (drag-and-drop + file picker) at the top of the page
-  - **Transaction list table:**
-    - Columns: Date, Description, Category (pill with dropdown to change), Amount
-    - Sorted by date descending
-    - Income rows highlighted green
-    - Flagged categories highlighted with category colour
-    - Category dropdown saves override via `PATCH /api/transactions/:id`
-    - Paginated or virtualised if > 100 transactions
+Verify the category IDs match the keys actually used in the CATEGORIES array. The existing IDs visible in the codebase include: `groceries`, `kids_clothes`, `kids_activities` (or `kids`), `holiday`, `fuel`, `health`, `retail`, `eating_out`. Check the actual key names in `categories.ts` and use those exactly.
 
-**Acceptance criteria:**
-- Month selector shows all months with data, defaults to most recent
-- Switching months updates all components (metrics, categories, chart, transactions)
-- Category totals match manual calculation (verified against March data)
-- Projection logic: if 19 transactions span days 1-19 of a 31-day month, projection = actual * 31/19
-- Progress bars render correctly with target markers
-- Red highlight appears when projected total exceeds target
-- Category dropdown on transaction rows saves immediately and updates category totals
-- Upload zone accepts CSV and refreshes the page data after successful upload
-- Upload zone shows success/error message
-- Table is readable on mobile (horizontal scroll or card layout for narrow screens)
+No component changes needed. `SpendingAnalysis.tsx` already reads from `CATEGORY_TARGETS` and renders the `$X / $Y` format with red highlighting when exceeded.
 
-**On completion:** "Phase 5 complete. Next Phase 6: Timeline and broker readiness pages"
+**Acceptance criteria**:
+- [ ] `CATEGORY_TARGETS` contains entries for all 8 categories listed above
+- [ ] Spending tab shows `$X / $Y` format for groceries, kids clothes, kids activities, holiday, fuel, health (in addition to existing retail and eating out)
+- [ ] Holiday shows red indicator when any amount is spent (target is $0)
+- [ ] Categories without targets (subscriptions, bills, other, income) still show amount only, no target
+- [ ] Projections continue to display correctly alongside targets
+- [ ] No TypeScript errors in build
+
+✅ Phase 2 complete. Next → Phase 3: Document checklist status states
 
 ---
 
-### Phase 6: Timeline and broker readiness pages
+## Phase 3: Document checklist status states
 
-**Tasks:**
-- Create `src/pages/timeline.astro` with React island
-- Create `src/components/Timeline.tsx`:
-  - Interactive milestone checklist (9 items)
-  - Click to toggle complete/incomplete
-  - Completed items show green check, strikethrough text
-  - Progress bar at top
-  - Key numbers reference card below
-  - State persists via `PATCH /api/milestones/:id`
-- Create `src/pages/broker.astro` with React island
-- Create `src/components/BrokerReady.tsx`:
-  - Readiness score with large circular progress ring
-  - Each of 10 criteria with pass/fail, label, and detail
-  - Borrowing capacity table (3 scenarios)
-  - Documents checklist with toggle (persists via `PATCH /api/documents/:id`)
-- Create milestone and document API endpoints:
-  - `GET /api/milestones`
-  - `PATCH /api/milestones/:id`
-  - `GET /api/documents`
-  - `PATCH /api/documents/:id`
+**Why**: The 10 document items on Broker Ready are binary checked/unchecked but all show as unchecked. A broker prep workflow needs three states and visibility into which documents are required for pre approval.
 
-**Acceptance criteria:**
-- Milestone toggle persists across page reloads and devices
-- Milestone completion updates the readiness score on the overview page
-- Documents checklist toggle persists
-- Readiness score recalculates correctly when milestones change
-- Borrowing capacity table shows correct numbers ($425k / $600k / $780k)
-- Key numbers card shows all purchase-related figures
-- All pages work on mobile at 375px width
+**Files to create/modify**:
+- `migrations/0005_document_status.sql` (new)
+- `src/pages/api/documents/index.ts` (modify response)
+- `src/pages/api/documents/[id].ts` (modify to accept status)
+- `src/components/BrokerReady.tsx` (modify documents section)
 
-**On completion:** "Phase 6 complete. Update CLAUDE.md with current state and append to SESSION_LOG.md. Next Phase 7: Balance history and final polish"
+**Implementation**:
 
----
+Migration `0005_document_status.sql`:
+```sql
+ALTER TABLE documents ADD COLUMN status TEXT NOT NULL DEFAULT 'not_started';
+ALTER TABLE documents ADD COLUMN required_for_preapproval INTEGER NOT NULL DEFAULT 0;
 
-### Phase 7: Balance history and final polish
+UPDATE documents SET required_for_preapproval = 1 WHERE id IN (
+  'fy23-24-noa', 'fy24-25-noa', 'interim-pl', 'income-letter',
+  'personal-statements', 'business-statements', 'trust-deed'
+);
+```
 
-**Tasks:**
-- Create `GET /api/balances/history` endpoint
-- Add balance history chart to dashboard (line chart showing combined balance over time)
-- Add "last updated" timestamp display next to balance inputs
-- Add upload history section (list of past uploads with dates and counts from `uploads` table)
-- PWA manifest for add-to-home-screen on mobile
-- Favicon and meta tags (title: "Home by October")
-- Error boundaries on all React components
-- Loading states for all data-fetching components
-- Empty states for pages with no data yet (e.g. first visit before any uploads)
-- 404 page
-- Final responsive QA pass on mobile (iPhone SE, iPhone 14, iPad)
-- Performance: ensure Lighthouse score > 90 on mobile
-- Remove any console.log statements
+Note: D1 supports ALTER TABLE ADD COLUMN. Run locally and remotely before deploying.
 
-**Acceptance criteria:**
-- Balance history chart shows all recorded snapshots as a line over time
-- Upload history shows date, filename, new/duplicate counts for each past upload
-- PWA: app can be added to iPhone home screen and opens in standalone mode
-- All pages have appropriate loading and empty states
-- No console errors in production build
-- Lighthouse mobile performance > 90
-- All features verified working on Cloudflare Pages production URL
+`api/documents/index.ts` GET: Include `status` and `required_for_preapproval` in the SELECT. Sort results: required documents first, then optional.
 
-**On completion:** "Phase 7 complete. Update CLAUDE.md with final state and append to SESSION_LOG.md. Project complete."
+`api/documents/[id].ts` PATCH: Accept `{ status: 'not_started' | 'in_progress' | 'obtained' }`. Update the `status` column. Also update `checked = 1` and `checked_at = datetime('now')` when status is `'obtained'` for backwards compatibility with readiness score.
+
+`BrokerReady.tsx` documents section:
+- Replace checkbox UI with three state indicator per document:
+  - `not_started`: grey circle, `{ color: '#9ca3af' }`
+  - `in_progress`: amber circle with a dot, `{ color: '#f59e0b' }`
+  - `obtained`: green checkmark, `{ color: '#16a34a' }`
+- Clicking a document row cycles: not_started → in_progress → obtained → not_started
+- Each click sends PATCH to `/api/documents/{id}` with the new status
+- Documents with `required_for_preapproval = 1` show a small "Required" tag: `{ background: '#fef2f2', color: '#dc2626', fontSize: '10px', fontWeight: 600, padding: '1px 6px', borderRadius: '3px' }`
+- Summary line above the list: "X of Y required documents obtained"
+- Sort: required first, then optional. Within each group, sort by status (not_started last)
+
+**Acceptance criteria**:
+- [ ] Migration runs without error on both local and remote D1
+- [ ] `GET /api/documents` returns `status` and `required_for_preapproval` for every document
+- [ ] `PATCH /api/documents/fy23-24-noa` with `{ "status": "in_progress" }` persists correctly
+- [ ] Cycling through all three states works and persists across page reload
+- [ ] 7 documents show "Required" tag (fy23-24-noa through trust-deed)
+- [ ] 3 documents do NOT show "Required" (child-support, id-100-points, rental-lease)
+- [ ] Summary count accurately reflects obtained count out of required total
+- [ ] Existing readiness score (which checks `checked` column) still works when status is set to `obtained`
+- [ ] Mobile (375px) renders the three states and tags without overflow
+
+✅ Phase 3 complete. Next → Phase 4: Auto calculate balance from CSV upload
 
 ---
 
-## Git and deployment workflow
+## Phase 4: Auto calculate balance from CSV upload
 
-CC handles all git and deployment operations. Will does not run any commands.
+**Why**: Balance is manually entered via "Update Balances" but the uploaded CSV already contains running balance data per transaction. Auto extracting the closing balance eliminates a manual step and reduces error.
 
-- Commit after each completed phase: `git add -A && git commit -m "feat: phase X — [description]" && git push`
-- Deploy after each phase: `npm run build && wrangler pages deploy dist/`
-- Branch: `main` (auto-deploys if GitHub integration is set up, otherwise CC deploys manually via wrangler)
-- If D1 migrations are added in a phase, run them on remote before deploying: `wrangler d1 execute home-loan-tracker --remote --file=migrations/XXXX.sql`
-- Verify the live URL works after each deploy before reporting phase complete
+**Files to modify**:
+- `src/pages/api/upload.ts`
+- `src/components/Dashboard.tsx`
 
-**Every phase must end with:** git commit, git push, build, deploy, and verification that the live site works. Do not report a phase as complete until the live URL is confirmed working.
+**Implementation**:
 
-## SESSION_LOG.md
+`api/upload.ts`: After the existing CSV parse and transaction insert logic:
+1. From the parsed transactions in this batch, find the one with the latest `date` value
+2. If that transaction has a non null `balance` field, proceed with auto update
+3. Fetch the most recent `bank_balances` row to get the current `nab_business` value
+4. Compare: if the latest transaction date in the batch is more recent than the `recorded_at` of the latest bank_balances row (or if no bank_balances rows exist), insert a new bank_balances row with `bank_australia = transaction.balance` and `nab_business = existing_nab_business` (or 0 if no prior rows)
+5. If the uploaded batch contains older data than what's already recorded, skip the auto update
+6. Add to the upload response: `balance_updated: boolean`, `new_bank_australia: number | null`
 
-Create on first phase. Append after Phases 4, 6, and 7 (at branching points and project end).
+`Dashboard.tsx`: After a successful CSV upload (look for the existing upload handler):
+1. If the response includes `balance_updated: true`, refresh the balance display by re fetching `/api/balances`
+2. Show a small green note below the Bank Australia balance: "Updated from statement" with a fade out after 5 seconds
+3. The manual "Update Balances" inputs and Save button remain functional. Manual entry always works as an override.
 
-## Notes for CC
+Edge cases to handle:
+- CSV with no balance column (some Bank Australia export formats omit it): skip auto update, return `balance_updated: false`
+- Multiple uploads in quick succession: each checks against latest bank_balances row, so the most recent always wins
+- First ever upload with no existing bank_balances rows: use `nab_business = 0`
 
-- **CC handles everything.** Will does not run any terminal commands, create any Cloudflare resources, or do any manual configuration. The only things Will does are: choose a password when prompted, and complete browser auth flows if wrangler or gh CLI need login.
-- The CSV format is specific to Bank Australia. Example header: `Effective Date,Entered Date,Transaction Description,Amount,Balance`
-- Amounts are prefixed with `$` and negative amounts have a `-` prefix before the `$`
-- Some descriptions are wrapped in quotes, some are not
-- The regex categorisation must handle descriptions like `POS #589745-UBER *EATS HELP.UBER.COM\` (note the backslash at end, POS prefix, and varying whitespace)
-- Will already lives in Leopold at 19 Estuary Boulevard — this app is for his personal use only
-- Light theme only, no dark mode toggle needed
-- No dashes (hyphens, em dashes, en dashes) in any UI text — use alternative punctuation or rewrite
-- If any wrangler command fails, troubleshoot and retry. If a Cloudflare operation genuinely cannot be done via CLI, provide Will with the exact minimal steps as a fallback, but exhaust CLI options first.
-- Test data is available in the `test-data/` folder. Use Will's actual Bank Australia CSVs to verify parsing and categorisation.
-- The reference prototype is in `REFERENCE_PROTOTYPE.jsx` — use it for design patterns, categorisation logic, and component structure. Do not copy it verbatim; adapt it for the Astro + D1 architecture.
+**Acceptance criteria**:
+- [ ] Uploading a CSV containing balance data automatically creates a new bank_balances row
+- [ ] The bank_australia value matches the balance from the latest dated transaction in the CSV
+- [ ] NAB Business balance is preserved from the previous bank_balances row (not zeroed)
+- [ ] Uploading older CSV data does NOT overwrite a more recent balance
+- [ ] Upload response includes `balance_updated` and `new_bank_australia` fields
+- [ ] Dashboard balance cards refresh after upload with auto updated balance
+- [ ] "Updated from statement" note appears briefly after auto update
+- [ ] Manual "Update Balances" form still functions independently
+- [ ] A CSV with no balance column results in `balance_updated: false` and no DB change
+
+✅ Phase 4 complete. Update CLAUDE.md with current state and append to SESSION_LOG.md. Next → Phase 5: Trust income assessment section
+
+---
+
+## Phase 5: Trust income assessment section
+
+**Why**: The single biggest risk to the $750K target is income verification. Brokers assess trust income completely differently from PAYG salary. The tool tracks spending behaviour but has no view of how a lender will assess income. Without this, borrowing capacity estimates are guesswork.
+
+**Files to create/modify**:
+- `migrations/0006_income_records.sql` (new)
+- `src/pages/api/income/index.ts` (new)
+- `src/pages/api/income/assessment.ts` (new)
+- `src/components/BrokerReady.tsx` (add section)
+
+**Implementation**:
+
+Migration `0006_income_records.sql`:
+```sql
+CREATE TABLE income_records (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  financial_year TEXT NOT NULL UNIQUE,
+  trust_distribution REAL DEFAULT 0,
+  personal_taxable_income REAL DEFAULT 0,
+  add_back_depreciation REAL DEFAULT 0,
+  add_back_super REAL DEFAULT 0,
+  add_back_one_off REAL DEFAULT 0,
+  add_back_other REAL DEFAULT 0,
+  notes TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
+INSERT INTO income_records (financial_year) VALUES ('FY24'), ('FY25');
+```
+
+`api/income/index.ts`:
+- GET: Return all income_records rows ordered by financial_year
+- POST: Accept `{ financial_year, trust_distribution?, personal_taxable_income?, add_back_depreciation?, add_back_super?, add_back_one_off?, add_back_other?, notes? }`. Upsert using `INSERT ... ON CONFLICT(financial_year) DO UPDATE SET ...`. Update the `updated_at` timestamp.
+
+`api/income/assessment.ts`:
+- GET: Compute lender assessed income from income_records
+- Logic:
+  1. Fetch FY24 and FY25 rows
+  2. For each: `assessable = trust_distribution + add_back_depreciation + add_back_super + add_back_one_off + add_back_other`
+  3. Determine `data_completeness`:
+     - `'full'` if both years have `trust_distribution > 0`
+     - `'partial'` if only one year has data
+     - `'empty'` if neither has data
+  4. `lender_annual_income`:
+     - If both years have data: `Math.min(fy24_assessable, fy25_assessable)` (lower of two years)
+     - If one year: that year's assessable (with note about restricted lender panel)
+     - If neither: 0
+  5. `lender_monthly_income = lender_annual_income / 12`
+  6. Return: `{ fy24: { trust_distribution, add_backs_total, assessable }, fy25: { ... }, lender_annual_income, lender_monthly_income, data_completeness, income_sufficient_for_target: lender_annual_income >= 150000 }`
+
+`BrokerReady.tsx`: Add "Lender Income Assessment" section. Place it ABOVE the existing borrowing capacity cards. Structure:
+
+- Section heading: "Lender Income Assessment" (Georgia serif, matching existing headings)
+- Two column layout (stacking to single column on mobile): FY24 on left, FY25 on right
+- Each column contains editable number inputs for:
+  - Trust distribution (the main figure)
+  - Add back: Depreciation
+  - Add back: Super contributions
+  - Add back: One off expenses
+  - Add back: Other
+  - Computed total: "Assessable income: $XXX,XXX"
+- Below the columns: summary card showing:
+  - "Lender assessed income (lower of 2 years): $XXX,XXX/year ($XX,XXX/month)"
+  - Traffic light indicator: green if >= $150K, amber if $100K to $150K, red if < $100K
+  - If `data_completeness === 'empty'`: show prompt "Enter your trust distribution and add back figures from your tax returns to calculate what a broker will assess as your income"
+  - If `data_completeness === 'partial'`: show note "Only one year of data. Most lenders require two years for trust income. This restricts your lender panel."
+- On any input change: debounce 500ms, POST to `/api/income`, then re fetch `/api/income/assessment` to update the summary
+- Input styling: match existing balance inputs on the Dashboard (simple text inputs with $ prefix)
+
+**Acceptance criteria**:
+- [ ] Migration creates `income_records` table with FY24 and FY25 rows
+- [ ] `GET /api/income` returns both records with all fields
+- [ ] `POST /api/income` with `{ "financial_year": "FY24", "trust_distribution": 85000 }` persists correctly
+- [ ] `GET /api/income/assessment` with both years populated returns correct `lender_annual_income` (lower of two)
+- [ ] Assessment returns `data_completeness: 'empty'` when no figures entered
+- [ ] BrokerReady tab renders income section with editable inputs
+- [ ] Entering values and tabbing away triggers save and updates the assessment summary
+- [ ] Traffic light shows correct colour for the calculated income
+- [ ] Empty state shows the prompt text, not zeros
+- [ ] Mobile (375px): columns stack vertically, inputs are full width
+
+✅ Phase 5 complete. Next → Phase 6: Dynamic borrowing capacity calculator
+
+---
+
+## Phase 6: Dynamic borrowing capacity calculator
+
+**Why**: The static $425K/$600K/$780K cards are hardcoded. The $780K figure is almost certainly unachievable on the current income. Replace with a real calculation fed by the income assessment from Phase 5 and actual expense data.
+
+**Files to create/modify**:
+- `src/pages/api/borrowing-capacity.ts` (new)
+- `src/components/BrokerReady.tsx` (replace static cards)
+
+**Implementation**:
+
+`api/borrowing-capacity.ts`:
+- GET: Compute maximum borrowing capacity
+- Server side data sources:
+  1. Income: Fetch from income assessment logic (same as `/api/income/assessment`). If no income data, fallback to $72,000/year ($6,000/month from owner's drawings).
+  2. Expenses: Fetch latest month summary from transactions. Use the `total_expenses` (all categories except income) as actual monthly expenses.
+  3. HEM: Hardcode $3,100 for single parent, 2 dependants, regional Victoria. This is the floor.
+- Calculation:
+  ```
+  monthly_income = lender_annual_income / 12  (or $6,000 fallback)
+  declared_expenses = max(actual_monthly_expenses, 3100)  // HEM floor
+  monthly_surplus = monthly_income - declared_expenses
+  assessment_rate = 0.09  // 9% buffer
+  loan_term_months = 360  // 30 years
+  
+  // Standard annuity formula for max loan from a given monthly payment
+  r = assessment_rate / 12  // monthly rate
+  max_repayment = monthly_surplus * 0.95  // 5% safety margin
+  if max_repayment <= 0: max_loan = 0
+  else: max_loan = max_repayment * ((1 - (1 + r)^(-loan_term_months)) / r)
+  
+  Round max_loan down to nearest $5,000
+  ```
+- Response:
+  ```json
+  {
+    "max_loan": 520000,
+    "monthly_income": 10000,
+    "income_source": "trust_assessment",  // or "fallback_drawings"
+    "actual_monthly_expenses": 5683,
+    "hem_benchmark": 3100,
+    "declared_expenses": 5683,
+    "monthly_surplus": 4317,
+    "max_monthly_repayment": 4101,
+    "assessment_rate": 0.09,
+    "target_loan": 735000,
+    "target_achievable": false,
+    "income_needed_for_target": 185000
+  }
+  ```
+- Also compute `income_needed_for_target`: reverse the formula to find what annual income would be needed to borrow $735,000 given declared expenses and the same assessment rate.
+
+`BrokerReady.tsx`: Replace the three static borrowing capacity cards with:
+- A single large card showing:
+  - Main figure: "Estimated maximum borrowing: $XXX,XXX" in large text
+  - Below: "Based on $XXX,XXX annual assessed income at 9% buffer rate"
+  - Comparison bar or text: "Your target: $735,000" with green checkmark if `target_achievable`, red X if not
+  - If not achievable: "You would need ~$XXX,XXX annual income to borrow $735,000" (using `income_needed_for_target`)
+  - Breakdown section (collapsible or always visible):
+    - Monthly income: $X,XXX
+    - Declared expenses: $X,XXX (actual) or $X,XXX (HEM floor)
+    - Monthly surplus: $X,XXX
+    - Max repayment (at 9%): $X,XXX
+  - If `income_source === 'fallback_drawings'`: amber warning box: "Using $6,000/month from owner's drawings. Enter your trust income data in the section above for an accurate estimate."
+  - Footer note in muted text: "This is an estimate only. Your broker Simon will run a formal serviceability assessment with specific lender criteria."
+
+**Acceptance criteria**:
+- [ ] `GET /api/borrowing-capacity` returns all computed fields
+- [ ] With no income data entered: uses $72K/year fallback, `income_source: 'fallback_drawings'`
+- [ ] With income data: uses the lender assessed figure from income_records
+- [ ] `declared_expenses` uses `max(actual_expenses, 3100)` (never below HEM)
+- [ ] `max_loan` is correctly calculated using the annuity formula at 9%
+- [ ] `income_needed_for_target` reverse calculation is correct
+- [ ] Static $425K/$600K/$780K cards are completely removed
+- [ ] New dynamic card renders with correct data
+- [ ] Target comparison shows red when $735K is not achievable
+- [ ] Fallback warning appears when no income data is entered
+- [ ] Mobile (375px): card renders without overflow, breakdown text wraps cleanly
+
+✅ Phase 6 complete. Update CLAUDE.md with current state and append to SESSION_LOG.md. Next → Phase 7: FHG eligibility tracking
+
+---
+
+## Phase 7: FHG eligibility tracking
+
+**Why**: The Family Home Guarantee has specific eligibility criteria. Missing one could invalidate the 2% deposit strategy entirely. The tool should surface these as a checklist so nothing is overlooked.
+
+**Files to create/modify**:
+- `migrations/0007_fhg_eligibility.sql` (new)
+- `src/pages/api/fhg-eligibility.ts` (new)
+- `src/components/BrokerReady.tsx` (add section)
+
+**Implementation**:
+
+Migration `0007_fhg_eligibility.sql`:
+```sql
+CREATE TABLE fhg_eligibility (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  detail TEXT,
+  criterion_type TEXT NOT NULL DEFAULT 'manual',
+  confirmed INTEGER DEFAULT 0,
+  confirmed_at TEXT
+);
+
+INSERT INTO fhg_eligibility (id, label, detail, criterion_type) VALUES
+  ('single-parent', 'Single parent with dependent children', 'Must have at least one dependent child', 'manual'),
+  ('australian-citizen', 'Australian citizen', 'Must be an Australian citizen (not just permanent resident)', 'manual'),
+  ('income-cap', 'Taxable income under $125,000', 'Individual taxable income must be below the FHG cap', 'computed'),
+  ('no-property', 'No existing property ownership', 'Must not own property individually or through any entity including trusts', 'manual'),
+  ('owner-occupier', 'Owner occupier intent', 'Property must be purchased as primary residence', 'manual'),
+  ('participating-lender', 'Participating lender confirmed', 'Broker has confirmed submission through an FHG participating lender', 'manual'),
+  ('fy27-places', 'FY27 scheme places available', 'FHG allocation for FY27 opens 1 July 2026. Places are limited.', 'manual');
+```
+
+`api/fhg-eligibility.ts`:
+- GET: Return all criteria. For the `income-cap` criterion (`criterion_type = 'computed'`):
+  1. Fetch the most recent FY row from `income_records` where `personal_taxable_income > 0`
+  2. If found and < 125000: auto set `confirmed = 1`, include `computed_value` in response
+  3. If found and >= 125000: auto set `confirmed = 0`, include `computed_value` and a warning
+  4. If no income data: `confirmed = 0`, `status = 'unknown'`, `computed_value = null`
+- For manual criteria: return the stored `confirmed` value
+- PATCH: Accept `{ confirmed: boolean }` for manual criteria only. Reject PATCH on computed criteria with error.
+
+`BrokerReady.tsx`: Add "FHG Eligibility" section. Place it BETWEEN the broker readiness score and the income assessment section. Structure:
+- Heading: "FHG Eligibility" (Georgia serif)
+- Summary line: "X of 7 criteria confirmed"
+- List of 7 criteria, each with:
+  - Green checkmark if confirmed/met
+  - Red X if explicitly failed (income over $125K)
+  - Grey question mark if unconfirmed or unknown
+  - For `income-cap` with computed value: show the actual figure, e.g., "Taxable income: $XX,XXX (under $125,000 cap)"
+  - For `fy27-places`: show note "Allocation opens 1 July 2026" if unconfirmed
+- Manual criteria are clickable to toggle confirmed/unconfirmed (sends PATCH)
+- Computed criteria are not clickable (show a lock icon or "auto" label)
+
+**Acceptance criteria**:
+- [ ] Migration creates `fhg_eligibility` table with 7 seeded criteria
+- [ ] `GET /api/fhg-eligibility` returns all 7 criteria with correct structure
+- [ ] Income criterion auto computes from `personal_taxable_income` in `income_records`
+- [ ] If `personal_taxable_income = 0` (no data), income criterion shows grey question mark with "Enter taxable income in the income section below"
+- [ ] If `personal_taxable_income = 90000`, income criterion shows green with "$90,000 (under $125,000 cap)"
+- [ ] If `personal_taxable_income = 130000`, income criterion shows red with "$130,000 (exceeds $125,000 cap)"
+- [ ] Manual criteria toggle on click and persist via PATCH
+- [ ] Computed criteria do NOT toggle on click
+- [ ] Summary count is accurate
+- [ ] Mobile (375px): list renders cleanly
+
+✅ Phase 7 complete. Next → Phase 8: Genuine savings tracking
+
+---
+
+## Phase 8: Genuine savings tracking
+
+**Why**: Balance dropped $118K to $87K due to strategic ATO payments ($89K total). A broker sees a declining balance trend. The tool should tell the genuine savings story: "The balance dropped because of deliberate debt clearance. The underlying savings pattern is positive."
+
+**Files to create/modify**:
+- `src/pages/api/savings-analysis.ts` (new)
+- `src/components/Dashboard.tsx` (add section)
+
+**Implementation**:
+
+`api/savings-analysis.ts`:
+- GET: Compute genuine savings metrics from existing transaction and balance data
+- Logic:
+  1. Fetch all transactions from the last 3 complete months (use `month_key` to identify)
+  2. Identify large one off outflows: transactions where `amount < -5000` in a single transaction (ATO payments, etc). Return these as `excluded_outflows: [{ description, amount, date }]`
+  3. Calculate `months_counted` (number of distinct month_keys in the 3 month window)
+  4. `total_income`: sum of all transactions where category is 'income' in the window
+  5. `total_regular_expenses`: sum of absolute values of all non income transactions, MINUS the excluded large outflows
+  6. `net_monthly_savings = (total_income - total_regular_expenses) / months_counted`
+  7. Fetch balance history from `bank_balances` (earliest and latest in the window)
+  8. `balance_change_raw = latest_combined - earliest_combined`
+  9. `balance_change_adjusted = balance_change_raw + sum_of_excluded_outflow_amounts` (adding back the large payments since they were deliberate)
+  10. `genuine_savings_trend`: 'positive' if `net_monthly_savings > 200`, 'flat' if between -200 and 200, 'negative' if < -200
+- Response:
+  ```json
+  {
+    "net_monthly_savings": 850,
+    "balance_change_raw": -31000,
+    "balance_change_adjusted": 58000,
+    "excluded_outflows": [
+      { "description": "ATO Payment ...", "amount": -54000, "date": "2026-03-..." },
+      { "description": "ATO Assessment ...", "amount": -35000, "date": "2026-04-..." }
+    ],
+    "total_excluded": 89000,
+    "months_analysed": 3,
+    "genuine_savings_trend": "positive"
+  }
+  ```
+
+`Dashboard.tsx`: Add a "Genuine Savings" card. Place it between the balance summary cards and the "Update Balances" section. Structure:
+- Card with light green background if trend positive, light amber if flat, light red if negative
+- Main metric: "Net monthly savings: $X,XXX"
+- Secondary: "Adjusted balance trend: +$XX,XXX (after excluding $89K in ATO debt clearance)"
+- If trend is positive: small green text "Savings pattern is healthy"
+- If no data or no excluded outflows: just show net monthly savings without the adjustment narrative
+
+**Acceptance criteria**:
+- [ ] `GET /api/savings-analysis` returns all computed fields
+- [ ] Large transactions (> $5,000 single outflow) are identified and excluded
+- [ ] `net_monthly_savings` reflects income minus regular expenses (not including large one offs)
+- [ ] `balance_change_adjusted` correctly adds back excluded outflows to show the "real" trend
+- [ ] `total_excluded` matches the sum of all excluded outflow amounts
+- [ ] Dashboard renders the card with correct colour based on trend
+- [ ] Card shows the exclusion narrative when large outflows are present
+- [ ] Mobile (375px): card renders without overflow
+
+✅ Phase 8 complete. Next → Phase 9: HEM benchmarking on Spending tab
+
+---
+
+## Phase 9: HEM benchmarking on Spending tab
+
+**Why**: Brokers compare actual living expenses against the Household Expenditure Measure and use whichever is higher. The Spending tab should show this comparison so the user understands how every dollar of expense reduction directly affects borrowing capacity.
+
+**Files to modify**:
+- `src/pages/api/summary.ts` (add HEM fields to response)
+- `src/components/SpendingAnalysis.tsx` (add comparison card)
+
+**Implementation**:
+
+`api/summary.ts`: Add these fields to the existing response object (do not break existing fields):
+```typescript
+hem_benchmark: 3100,  // hardcoded for single parent, 2 dependants, regional Vic
+hem_household_type: 'Single parent, 2 dependants, regional Victoria',
+actual_living_expenses: number,  // total expenses for the month MINUS rent category
+expenses_vs_hem: 'above' | 'below',
+hem_gap: number  // actual_living_expenses - hem_benchmark (positive = above HEM)
+```
+
+The `actual_living_expenses` must EXCLUDE rent/mortgage because HEM also excludes housing costs. Filter out transactions where `category = 'rent'` (or the category_override is 'rent') before summing.
+
+`SpendingAnalysis.tsx`: Add a "Broker Benchmark" card. Place it between the top summary metrics row and the "Recurring Expenses" section. Structure:
+- Card heading: "Broker Expense Benchmark"
+- Horizontal bar visualisation (inline SVG or styled div):
+  - Full width bar representing a range (e.g., $0 to max of actual or HEM * 1.5)
+  - HEM benchmark shown as a vertical marker line at $3,100 with label "HEM benchmark"
+  - Actual expenses shown as a filled bar up to `actual_living_expenses`
+  - Bar colour: green if below HEM, amber if within 20% above, red if well above
+- Text below the bar:
+  - If above HEM: "Your living expenses: $X,XXX (excluding rent). Broker will use this figure. Every $100/month reduction increases borrowing by approximately $12,000."
+  - If below HEM: "Your living expenses ($X,XXX) are below the HEM benchmark ($3,100). Broker will use HEM as the floor."
+- Small note in muted text: "HEM = Household Expenditure Measure. Excludes housing costs. Based on single parent, 2 dependants, regional area."
+
+The "$12,000 per $100" approximation: at 9% assessment rate over 30 years, each $100/month of surplus translates to roughly $12,000 in additional borrowing capacity. This is close enough for a guideline.
+
+**Acceptance criteria**:
+- [ ] `GET /api/summary?month=2026-04` includes `hem_benchmark`, `actual_living_expenses`, `expenses_vs_hem`, `hem_gap`
+- [ ] `actual_living_expenses` excludes rent transactions (verify by checking the $2,389.88 rent is not included)
+- [ ] If actual living expenses are $3,293 and HEM is $3,100: `expenses_vs_hem = 'above'`, `hem_gap = 193`
+- [ ] Spending tab renders the benchmark card with bar visualisation
+- [ ] Bar marker and label display correctly
+- [ ] Impact text changes based on above/below HEM
+- [ ] Card renders at 375px width without overflow or visual glitches
+- [ ] Existing summary data is not broken (all prior fields still present)
+
+✅ Phase 9 complete. Update CLAUDE.md with final state and append to SESSION_LOG.md. V2 improvements complete.
+
+---
+
+## Phase completion protocol
+
+Every phase:
+1. Run `npm run build` (must pass clean)
+2. Run any new migrations on remote: `wrangler d1 migrations apply home-loan-tracker --remote`
+3. Git commit: `git add -A && git commit -m "feat: [phase description]"`
+4. Git push: `git push`
+5. Deploy: `wrangler pages deploy dist/`
+6. Verify live URL works at home-loan-tracker.pages.dev
+7. Print: "✅ Phase X complete. Next → Phase Y: [title]"
+
+Session log updates after Phases 4, 6, and 9.

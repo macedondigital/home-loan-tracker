@@ -7,6 +7,8 @@ interface Milestone {
   target_date: string | null;
   completed: number;
   completed_at: string | null;
+  overdue: boolean;
+  days_overdue: number;
 }
 
 function formatTargetDate(dateStr: string): string {
@@ -63,6 +65,7 @@ export default function Timeline() {
               ...s.milestoneRow,
               borderBottom: i < milestones.length - 1 ? '1px solid #f3f4f6' : 'none',
               cursor: 'pointer',
+              ...(m.overdue && !m.completed ? { borderLeft: '3px solid #dc2626', paddingLeft: '0.75rem' } : {}),
             }}
           >
             <div style={{
@@ -79,10 +82,15 @@ export default function Timeline() {
                 color: m.completed ? '#9ca3af' : '#374151',
               }}>
                 {m.label}
+                {m.overdue && !m.completed && (
+                  <span style={{ background: '#fef2f2', color: '#dc2626', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', marginLeft: '8px' }}>OVERDUE</span>
+                )}
               </div>
-              {m.detail && (
+              {m.overdue && !m.completed ? (
+                <div style={{ ...s.milestoneDetail, color: '#dc2626' }}>{m.days_overdue} days overdue{m.detail ? ` \u2022 ${m.detail}` : ''}</div>
+              ) : m.detail ? (
                 <div style={s.milestoneDetail}>{m.detail}</div>
-              )}
+              ) : null}
             </div>
             {m.target_date && (
               <div style={s.targetDate}>{formatTargetDate(m.target_date)}</div>
