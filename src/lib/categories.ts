@@ -121,6 +121,27 @@ export const CATEGORIES: Category[] = [
     patterns: [/mkke investments/i],
   },
   {
+    id: 'kids-clothes',
+    label: 'Kids clothes',
+    target: null,
+    color: '#06b6d4',
+    patterns: [/cotton on kids/i, /best & less/i, /pumpkin patch/i, /seed heritage/i],
+  },
+  {
+    id: 'holiday',
+    label: 'Holiday',
+    target: null,
+    color: '#2563eb',
+    patterns: [/airbnb/i, /booking\.com/i, /wotif/i, /jetstar/i, /qantas/i, /virgin australia/i, /webjet/i],
+  },
+  {
+    id: 'home-improvement',
+    label: 'Home improvement',
+    target: null,
+    color: '#65a30d',
+    patterns: [/mitre 10/i, /total tools/i, /ikea/i, /amart/i, /fantastic furniture/i],
+  },
+  {
     id: 'rent',
     label: 'Rent',
     target: null,
