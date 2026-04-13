@@ -39,6 +39,8 @@ interface UploadResult {
   total: number;
   new_count: number;
   duplicate_count: number;
+  balance_updated: boolean;
+  new_bank_australia: number | null;
 }
 
 interface UpcomingExpense {
@@ -243,6 +245,11 @@ export default function SpendingAnalysis() {
       {uploadResult && (
         <div style={s.uploadSuccess}>
           {uploadResult.new_count} new transactions imported, {uploadResult.duplicate_count} duplicates skipped
+          {uploadResult.balance_updated && uploadResult.new_bank_australia !== null && (
+            <div style={{ marginTop: 4, fontSize: '0.8125rem', color: '#166534' }}>
+              Bank Australia balance updated from statement: {formatCurrency(uploadResult.new_bank_australia)}
+            </div>
+          )}
         </div>
       )}
       {uploadError && <div style={s.uploadErrorMsg}>{uploadError}</div>}
