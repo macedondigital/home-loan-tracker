@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Option 3: Action Plan Focus</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #FAFAF7; color: #1a1a1a; }
+  .badge { display: inline-block; background: #ea580c; color: white; font-size: 0.6875rem; font-weight: 600; padding: 0.25rem 0.625rem; border-radius: 100px; letter-spacing: 0.03em; margin-bottom: 1.5rem; }
+  header { background: white; border-bottom: 1px solid #e8e6df; padding: 0.75rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+  .logo { font-family: Georgia, serif; font-size: 1.125rem; font-weight: 700; color: #166534; }
+  main { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem; }
+  .card { background: white; border: 1px solid #e8e6df; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
+  h2 { font-family: Georgia, serif; font-size: 1.125rem; color: #1a1a1a; margin-bottom: 0.75rem; }
+  .greeting { font-family: Georgia, serif; font-size: 1.5rem; color: #1a1a1a; margin-bottom: 0.25rem; }
+  .subtext { font-size: 0.9375rem; color: #6b7280; margin-bottom: 1.5rem; }
+  .action-list { list-style: none; padding: 0; }
+  .action-item { display: flex; gap: 0.75rem; padding: 1rem; border-radius: 10px; margin-bottom: 0.5rem; align-items: flex-start; }
+  .action-item.urgent { background: #fef2f2; border: 1px solid #fecaca; }
+  .action-item.important { background: #fffbeb; border: 1px solid #fde68a; }
+  .action-item.normal { background: #f0fdf4; border: 1px solid #bbf7d0; }
+  .action-item.info { background: #f8fafc; border: 1px solid #e2e8f0; }
+  .action-num { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: white; flex-shrink: 0; }
+  .action-num.urgent-n { background: #dc2626; }
+  .action-num.important-n { background: #d97706; }
+  .action-num.normal-n { background: #166534; }
+  .action-num.info-n { background: #6b7280; }
+  .action-title { font-size: 0.9375rem; font-weight: 600; color: #1a1a1a; }
+  .action-desc { font-size: 0.8125rem; color: #6b7280; margin-top: 0.125rem; }
+  .stats-strip { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+  .stat-block { background: white; border: 1px solid #e8e6df; border-radius: 12px; padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; }
+  .stat-left .label { font-size: 0.75rem; color: #6b7280; }
+  .stat-left .value { font-size: 1.5rem; font-weight: 700; }
+  .green { color: #166534; }
+  .red { color: #dc2626; }
+  .amber { color: #d97706; }
+  .mini-ring { display: flex; flex-direction: column; align-items: center; }
+  .mini-ring-label { font-size: 0.6875rem; color: #6b7280; margin-top: 0.25rem; }
+  .progress-row { display: flex; align-items: center; gap: 1rem; }
+  .progress-bar { flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 4px; }
+  .progress-label { font-size: 0.8125rem; font-weight: 600; color: #374151; white-space: nowrap; }
+  .section { margin-top: 1.5rem; }
+  .spend-chip { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.75rem; border-radius: 100px; font-size: 0.8125rem; font-weight: 500; margin-right: 0.375rem; margin-bottom: 0.375rem; }
+</style>
+</head>
+<body>
+  <header>
+    <span class="logo">Home by October</span>
+    <span style="font-size:0.8125rem; color:#6b7280;">Option 3: Action Plan</span>
+  </header>
+  <main>
+    <div class="badge">OPTION 3: ACTION PLAN FOCUS</div>
+
+    <div class="greeting">187 days to go, Will.</div>
+    <div class="subtext">Here's what needs your attention right now.</div>
+
+    <div class="card">
+      <h2>Your next moves</h2>
+      <ul class="action-list">
+        <li class="action-item urgent">
+          <span class="action-num urgent-n">1</span>
+          <div>
+            <div class="action-title">Upload your bank statement</div>
+            <div class="action-desc">3 days overdue. You need 3+ months of clean data for the broker.</div>
+          </div>
+        </li>
+        <li class="action-item urgent">
+          <span class="action-num urgent-n">2</span>
+          <div>
+            <div class="action-title">Stop Uber Eats</div>
+            <div class="action-desc">$247 this month. Target is $0. This is a red flag for brokers.</div>
+          </div>
+        </li>
+        <li class="action-item important">
+          <span class="action-num important-n">3</span>
+          <div>
+            <div class="action-title">Pay $35k ATO assessment</div>
+            <div class="action-desc">Due this month. Clearing ATO debt is a broker prerequisite.</div>
+          </div>
+        </li>
+        <li class="action-item normal">
+          <span class="action-num normal-n">4</span>
+          <div>
+            <div class="action-title">Book mortgage broker</div>
+            <div class="action-desc">Target: this month. Get the pre approval process started.</div>
+          </div>
+        </li>
+        <li class="action-item info">
+          <span class="action-num info-n">5</span>
+          <div>
+            <div class="action-title">Watch eating out spending</div>
+            <div class="action-desc">$340 this month, projected $560. Target is $200.</div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="stats-strip">
+      <div class="stat-block">
+        <div class="stat-left">
+          <div class="label">Combined balance</div>
+          <div class="value green">$118,000</div>
+        </div>
+        <div class="mini-ring">
+          <svg width="48" height="48" viewBox="0 0 48 48">
+            <circle cx="24" cy="24" r="20" fill="none" stroke="#e5e7eb" stroke-width="4"/>
+            <circle cx="24" cy="24" r="20" fill="none" stroke="#d97706" stroke-width="4"
+              stroke-dasharray="50.3 125.7" stroke-linecap="round" transform="rotate(-90 24 24)"/>
+            <text x="24" y="28" text-anchor="middle" font-size="14" font-weight="700" fill="#1a1a1a">4</text>
+          </svg>
+          <span class="mini-ring-label">Readiness</span>
+        </div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-left">
+          <div class="label">Surplus above purchase costs</div>
+          <div class="value green">$56,000</div>
+        </div>
+        <div class="mini-ring">
+          <svg width="48" height="48" viewBox="0 0 48 48">
+            <circle cx="24" cy="24" r="20" fill="none" stroke="#e5e7eb" stroke-width="4"/>
+            <circle cx="24" cy="24" r="20" fill="none" stroke="#166534" stroke-width="4"
+              stroke-dasharray="55.9 125.7" stroke-linecap="round" transform="rotate(-90 24 24)"/>
+            <text x="24" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1a1a">4/9</text>
+          </svg>
+          <span class="mini-ring-label">Milestones</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="card">
+        <h2>Problem categories this month</h2>
+        <div>
+          <span class="spend-chip" style="background:#fef2f2; color:#dc2626;">Uber Eats: $247 (target $0)</span>
+          <span class="spend-chip" style="background:#fef2f2; color:#dc2626;">Eating out: $340 (target $200)</span>
+          <span class="spend-chip" style="background:#fef2f2; color:#dc2626;">Retail: $210 (target $150)</span>
+          <span class="spend-chip" style="background:#f0fdf4; color:#166534;">Amazon: $56 (target $100)</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

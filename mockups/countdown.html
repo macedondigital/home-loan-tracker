@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Option 1: Countdown Focus</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #FAFAF7; color: #1a1a1a; }
+  .badge { display: inline-block; background: #166534; color: white; font-size: 0.6875rem; font-weight: 600; padding: 0.25rem 0.625rem; border-radius: 100px; letter-spacing: 0.03em; margin-bottom: 1.5rem; }
+  header { background: white; border-bottom: 1px solid #e8e6df; padding: 0.75rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+  .logo { font-family: Georgia, serif; font-size: 1.125rem; font-weight: 700; color: #166534; }
+  main { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem; }
+  .card { background: white; border: 1px solid #e8e6df; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
+  h1 { font-family: Georgia, serif; font-size: 1rem; color: #6b7280; font-weight: 400; margin-bottom: 0.25rem; }
+  .countdown-num { font-size: 4rem; font-weight: 800; color: #166534; line-height: 1; }
+  .countdown-label { font-size: 1.125rem; color: #6b7280; margin-bottom: 1.5rem; }
+  .timeline-bar { height: 10px; background: #e5e7eb; border-radius: 5px; overflow: hidden; margin-bottom: 0.5rem; }
+  .timeline-fill { height: 100%; background: linear-gradient(90deg, #166534, #22c55e); border-radius: 5px; width: 54%; }
+  .timeline-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: #9ca3af; margin-bottom: 2rem; }
+  .next-action { background: #fef3c7; border: 1px solid #fde68a; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; }
+  .next-action .icon { font-size: 1.5rem; }
+  .next-action .text { font-size: 0.9375rem; color: #92400e; }
+  .next-action .text strong { color: #78350f; }
+  h2 { font-family: Georgia, serif; font-size: 1.125rem; color: #1a1a1a; margin-bottom: 0.75rem; }
+  .focus-list { list-style: none; padding: 0; }
+  .focus-list li { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid #f3f4f6; font-size: 0.9375rem; }
+  .focus-list li:last-child { border-bottom: none; }
+  .check { width: 22px; height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; flex-shrink: 0; }
+  .check.done { background: #166534; color: white; }
+  .check.todo { border: 2px solid #d1d5db; }
+  .check.warn { background: #dc2626; color: white; }
+  .done-text { color: #9ca3af; text-decoration: line-through; }
+  .grid4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; margin-top: 1.5rem; }
+  .stat-card { background: white; border: 1px solid #e8e6df; border-radius: 12px; padding: 1rem; }
+  .stat-label { font-size: 0.75rem; color: #6b7280; margin-bottom: 0.25rem; }
+  .stat-value { font-size: 1.375rem; font-weight: 700; }
+  .green { color: #166534; }
+  .red { color: #dc2626; }
+  .section { margin-top: 2rem; }
+  .readiness-row { display: flex; align-items: center; gap: 1rem; margin-top: 1rem; }
+  .readiness-num { font-size: 2rem; font-weight: 800; color: #166534; }
+  .readiness-bar { flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+  .readiness-fill { height: 100%; background: #166534; border-radius: 4px; width: 40%; }
+  .tag { display: inline-block; font-size: 0.6875rem; padding: 0.125rem 0.5rem; border-radius: 4px; margin-left: 0.5rem; }
+  .tag-green { background: #f0fdf4; color: #166534; }
+  .tag-red { background: #fef2f2; color: #dc2626; }
+</style>
+</head>
+<body>
+  <header>
+    <span class="logo">Home by October</span>
+    <span style="font-size:0.8125rem; color:#6b7280;">Option 1: Countdown</span>
+  </header>
+  <main>
+    <div class="badge">OPTION 1: COUNTDOWN FOCUS</div>
+
+    <div class="card" style="text-align: center;">
+      <h1>Settlement target</h1>
+      <div class="countdown-num">187</div>
+      <div class="countdown-label">days to go</div>
+      <div class="timeline-bar"><div class="timeline-fill"></div></div>
+      <div class="timeline-labels">
+        <span>Mar 2026 (started)</span>
+        <span>Today</span>
+        <span>Oct 2026 (settlement)</span>
+      </div>
+    </div>
+
+    <div class="next-action">
+      <span class="icon">&#9888;</span>
+      <div class="text"><strong>Next action:</strong> Upload this week's bank statement (3 days overdue)</div>
+    </div>
+
+    <div class="card">
+      <h2>This month's focus</h2>
+      <ul class="focus-list">
+        <li><span class="check done">&#10003;</span> <span class="done-text">Meet accountant</span></li>
+        <li><span class="check done">&#10003;</span> <span class="done-text">Start clean banking</span></li>
+        <li><span class="check todo"></span> Book mortgage broker</li>
+        <li><span class="check todo"></span> Pay $35k ATO assessment</li>
+        <li><span class="check warn">!</span> Keep Uber Eats at $0 <span class="tag tag-red">$247 so far</span></li>
+        <li><span class="check todo"></span> Amazon under $100 <span class="tag tag-green">$56 so far</span></li>
+      </ul>
+    </div>
+
+    <div class="grid4">
+      <div class="stat-card">
+        <div class="stat-label">Bank Australia</div>
+        <div class="stat-value">$14,000</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">NAB Business</div>
+        <div class="stat-value">$104,000</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Combined</div>
+        <div class="stat-value green">$118,000</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Surplus above purchase costs</div>
+        <div class="stat-value green">$56,000</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Broker readiness</h2>
+      <div class="readiness-row">
+        <span class="readiness-num">4/10</span>
+        <div class="readiness-bar"><div class="readiness-fill"></div></div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

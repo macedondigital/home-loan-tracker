@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Option 2: Scorecard Focus</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #FAFAF7; color: #1a1a1a; }
+  .badge { display: inline-block; background: #7c3aed; color: white; font-size: 0.6875rem; font-weight: 600; padding: 0.25rem 0.625rem; border-radius: 100px; letter-spacing: 0.03em; margin-bottom: 1.5rem; }
+  header { background: white; border-bottom: 1px solid #e8e6df; padding: 0.75rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+  .logo { font-family: Georgia, serif; font-size: 1.125rem; font-weight: 700; color: #166534; }
+  main { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem; }
+  .card { background: white; border: 1px solid #e8e6df; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
+  h2 { font-family: Georgia, serif; font-size: 1.125rem; color: #1a1a1a; margin-bottom: 0.75rem; }
+  .hero { text-align: center; padding: 2rem 0; }
+  .ring-label { font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem; }
+  .criteria-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 1.25rem; }
+  .criterion { display: flex; align-items: center; gap: 0.5rem; padding: 0.625rem 0.75rem; border-radius: 8px; font-size: 0.8125rem; }
+  .criterion.pass { background: #f0fdf4; color: #166534; }
+  .criterion.fail { background: #fef2f2; color: #dc2626; }
+  .criterion .icon { font-weight: 700; font-size: 0.875rem; width: 18px; }
+  .grid4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; }
+  .stat-card { background: white; border: 1px solid #e8e6df; border-radius: 12px; padding: 1rem; }
+  .stat-label { font-size: 0.75rem; color: #6b7280; margin-bottom: 0.25rem; }
+  .stat-value { font-size: 1.375rem; font-weight: 700; }
+  .green { color: #166534; }
+  .red { color: #dc2626; }
+  .section { margin-top: 1.5rem; }
+  .spend-row { display: flex; justify-content: space-between; align-items: center; padding: 0.625rem 0; border-bottom: 1px solid #f3f4f6; }
+  .spend-row:last-child { border: none; }
+  .spend-cat { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .spend-amt { font-size: 0.875rem; font-weight: 600; }
+  .spend-target { font-size: 0.75rem; color: #9ca3af; }
+  .milestone-bar { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; margin-top: 0.5rem; }
+  .milestone-fill { height: 100%; background: #166534; border-radius: 4px; }
+  .days-badge { display: inline-flex; align-items: center; gap: 0.375rem; background: #fef3c7; color: #92400e; padding: 0.375rem 0.75rem; border-radius: 8px; font-size: 0.8125rem; font-weight: 500; }
+</style>
+</head>
+<body>
+  <header>
+    <span class="logo">Home by October</span>
+    <span style="font-size:0.8125rem; color:#6b7280;">Option 2: Scorecard</span>
+  </header>
+  <main>
+    <div class="badge">OPTION 2: SCORECARD FOCUS</div>
+
+    <div class="card">
+      <div class="hero">
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <circle cx="70" cy="70" r="58" fill="none" stroke="#e5e7eb" stroke-width="10"/>
+          <circle cx="70" cy="70" r="58" fill="none" stroke="#d97706" stroke-width="10"
+            stroke-dasharray="145.8 364.4" stroke-linecap="round" transform="rotate(-90 70 70)"/>
+          <text x="70" y="65" text-anchor="middle" font-size="40" font-weight="800" fill="#1a1a1a">4</text>
+          <text x="70" y="85" text-anchor="middle" font-size="14" fill="#6b7280">out of 10</text>
+        </svg>
+        <div class="ring-label">Broker Readiness Score</div>
+      </div>
+
+      <div class="criteria-grid">
+        <div class="criterion pass"><span class="icon">&#10003;</span> No BNPL</div>
+        <div class="criterion pass"><span class="icon">&#10003;</span> No gambling</div>
+        <div class="criterion pass"><span class="icon">&#10003;</span> Amazon under $100</div>
+        <div class="criterion pass"><span class="icon">&#10003;</span> Child support OK</div>
+        <div class="criterion fail"><span class="icon">&#10007;</span> Uber Eats ($247)</div>
+        <div class="criterion fail"><span class="icon">&#10007;</span> ATO not cleared</div>
+        <div class="criterion fail"><span class="icon">&#10007;</span> Cash buffer low</div>
+        <div class="criterion fail"><span class="icon">&#10007;</span> Need 3+ months data</div>
+        <div class="criterion fail"><span class="icon">&#10007;</span> P&L not signed</div>
+        <div class="criterion fail"><span class="icon">&#10007;</span> NOAs not ready</div>
+      </div>
+    </div>
+
+    <div class="grid4">
+      <div class="stat-card">
+        <div class="stat-label">Bank Australia</div>
+        <div class="stat-value">$14,000</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">NAB Business</div>
+        <div class="stat-value">$104,000</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Combined</div>
+        <div class="stat-value green">$118,000</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Surplus above purchase costs</div>
+        <div class="stat-value green">$56,000</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+          <h2 style="margin:0;">This month's spending</h2>
+          <span class="days-badge">&#9888; Statement 3 days overdue</span>
+        </div>
+        <div class="spend-row">
+          <div class="spend-cat"><span class="dot" style="background:#dc2626"></span> Uber Eats</div>
+          <div><span class="spend-amt red">$247</span> <span class="spend-target">/ $0 target</span></div>
+        </div>
+        <div class="spend-row">
+          <div class="spend-cat"><span class="dot" style="background:#ea580c"></span> Amazon</div>
+          <div><span class="spend-amt">$56</span> <span class="spend-target">/ $100 target</span></div>
+        </div>
+        <div class="spend-row">
+          <div class="spend-cat"><span class="dot" style="background:#d97706"></span> Eating out</div>
+          <div><span class="spend-amt red">$340</span> <span class="spend-target">/ $200 target</span></div>
+        </div>
+        <div class="spend-row">
+          <div class="spend-cat"><span class="dot" style="background:#7c3aed"></span> Retail</div>
+          <div><span class="spend-amt red">$210</span> <span class="spend-target">/ $150 target</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="card">
+        <h2>Milestones</h2>
+        <div style="font-size:0.875rem; color:#374151; margin-bottom:0.5rem;">4 of 9 complete</div>
+        <div class="milestone-bar"><div class="milestone-fill" style="width:44%"></div></div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
