@@ -84,3 +84,36 @@
 - REFERENCE_PROTOTYPE.jsx and test-data/ still not provided
 
 **Project status: All 7 phases complete. Dashboard is live at https://home-loan-tracker.pages.dev**
+
+## Scenarios tab: home purchase + tax planner (2026-06-09)
+
+**Completed:**
+- New fifth tab "Scenarios" (nav + mobile bottom tab), wired like the others
+  (scenarios.astro wraps Scenarios island in ErrorBoundary)
+- Three side-by-side property-price scenarios ($650k/$700k/$750k) over shared
+  income/cash/loan inputs; each shows property breakdown, tax sliders
+  (super/prepay/bucket), tax breakdown, cash flow to October settlement, and a
+  surplus/deficit indicator with a 30 June buffer-breach pill
+- Pure financial logic in src/lib (tax.ts, stamp-duty.ts, loan.ts, scenario.ts)
+  built test-first; 28 vitest cases assert the brief's reference values
+  (VIC duty $650k->$34,070 / $700k->$37,070 / $750k->$40,070) and reproduce the
+  prototype's default-scenario numbers exactly
+- Inline-styled React components matching BrokerReady conventions; range-slider
+  thumb styling added to global.css (.scenario-range)
+- Local state persists to localStorage (hbo-scenarios-v1); "Reset all" restores
+  defaults
+- Ported from designs/reference-prototype.html. Corrected the prototype's false
+  "FHB stamp duty concession" copy (Will owned 3 prior properties, no concession)
+- Added vitest + @astrojs/check dev tooling and an assets/ tree (gitignored) for
+  personal financial reference docs
+
+**Decisions:** tab name "Scenarios"; inline styles (not Tailwind, despite the
+brief) to match the codebase; localStorage persistence now (D1 deferred).
+
+**Deferred (future phases per brief):** expense accordion, Jul-Oct income
+forecasting, D1 persistence, link monthly cash growth to Spending-tab actuals.
+
+**Verification:** npm run test (28/28), npm run build clean, astro check clean
+for new code, authenticated SSR render verified locally, deployed and live.
+
+**Project status: Scenarios tab live at https://home-loan-tracker.pages.dev/scenarios**

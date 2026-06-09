@@ -28,22 +28,33 @@ src/
     SpendingAnalysis.tsx (623 lines) Spending tab
     Timeline.tsx         (161 lines) Timeline tab
     BrokerReady.tsx      (204 lines) Broker readiness tab
+    Scenarios.tsx        Scenarios tab root (owns state + localStorage)
+    SharedInputs.tsx     Scenarios: income/cash/loan input cards
+    ScenarioGrid.tsx     Scenarios: 3-up responsive grid
+    PropertyScenario.tsx Scenarios: single scenario card
+    RangeInput.tsx       Scenarios: reusable number-box + slider
+    scenario-icons.tsx   Scenarios: inline SVG icon set
     ErrorBoundary.tsx    (61 lines)  React error boundary
   pages/
     index.astro          Overview (wraps Dashboard)
     spending.astro       Spending (wraps SpendingAnalysis)
     timeline.astro       Timeline (wraps Timeline)
     broker.astro         Broker Ready (wraps BrokerReady)
+    scenarios.astro      Scenarios (wraps Scenarios)
     login.astro          Password gate
     404.astro            Not found
     api/                 20 route files (see table below)
   layouts/
-    Layout.astro         Shared nav, header, mobile bottom tabs
+    Layout.astro         Shared nav, header, mobile bottom tabs (5 tabs)
   lib/
     db.ts                getDB() helper
     auth.ts              Cookie signing, validation, password check
     csv-parser.ts        Bank Australia CSV parser
     categories.ts        Categorisation engine (228 lines)
+    tax.ts               Scenarios: FY25-26 tax, Medicare, Div 293 (tested)
+    stamp-duty.ts        Scenarios: VIC standard duty, no FHB concession (tested)
+    loan.ts              Scenarios: monthly repayment (tested)
+    scenario.ts          Scenarios: calculate() engine + defaults (tested)
   middleware.ts          Auth check on all routes
 migrations/
   0001_init.sql          Core tables
@@ -51,7 +62,13 @@ migrations/
   0003_merchant_rules.sql  Merchant rules table
   0004_recurring_expenses.sql  Recurring expenses table and seed
 wrangler.toml            D1 binding config
+assets/                  Personal financial reference docs (gitignored)
 ```
+
+The Scenarios tab is a client-only scenario planner (no API/D1 yet). Pure
+financial logic lives in `src/lib/*.ts` with vitest coverage (`npm run test`).
+State persists to localStorage under key `hbo-scenarios-v1`. See the Scenarios
+section of PLAN.md for the phased build and deferred work.
 
 ## API routes
 
