@@ -44,27 +44,22 @@ export const INCURRED_EXPENSES: IncurredExpense[] = [
   { category: 'Fines', amount: 102.0 },
 ];
 
-export type PrepayableStatus = 'incurred' | 'planned';
-
-export interface PrepayableExpense {
+export interface PrepayableItem {
+  id: string;
   item: string;
   amount: number;
-  status: PrepayableStatus;
-  note?: string;
 }
 
-// Confirmed prepayable / bring-forward items. Total: $24,737.
-// MacBook and UpDown desk were already purchased in June 2026, so they are
-// "incurred" rather than still "planned".
-export const PREPAYABLE_EXPENSES: PrepayableExpense[] = [
-  { item: 'SaaS subscriptions (annualised)', amount: 6000.0, status: 'planned' },
-  { item: 'Hosting (Scala + Synergy)', amount: 5000.0, status: 'planned' },
-  { item: 'MacBook', amount: 5200.0, status: 'incurred', note: 'purchased June 2026' },
-  { item: 'Freshwater Taxation (next year)', amount: 3500.0, status: 'planned' },
-  { item: 'Google Workspace (annual)', amount: 2000.0, status: 'planned' },
-  { item: 'AAMI insurance renewal', amount: 1300.0, status: 'planned' },
-  { item: 'UpDown desk', amount: 977.0, status: 'incurred', note: 'purchased June 2026' },
-  { item: 'Mobile / internet (Woolworths + Zintel)', amount: 760.0, status: 'planned' },
+// Default prepayable / bring-forward items, editable by the user (add/remove)
+// and persisted to localStorage. Already-purchased items (MacBook, desk) are
+// excluded - they are sunk costs, not a live prepay decision. Total: $18,560.
+export const DEFAULT_PREPAYABLES: PrepayableItem[] = [
+  { id: 'saas', item: 'SaaS subscriptions (annualised)', amount: 6000 },
+  { id: 'hosting', item: 'Hosting (Scala + Synergy)', amount: 5000 },
+  { id: 'freshwater', item: 'Freshwater Taxation (next year)', amount: 3500 },
+  { id: 'workspace', item: 'Google Workspace (annual)', amount: 2000 },
+  { id: 'aami', item: 'AAMI insurance renewal', amount: 1300 },
+  { id: 'mobile', item: 'Mobile / internet (Woolworths + Zintel)', amount: 760 },
 ];
 
 export const sumExpenses = (rows: { amount: number }[]): number =>

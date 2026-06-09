@@ -147,3 +147,26 @@ for new code, authenticated SSR render verified (net summary $48,000, all three
 scenarios Affordable, accordion totals correct, no dashes), deployed.
 
 **Project status: Scenarios tab v2 live at https://home-loan-tracker.pages.dev/scenarios**
+
+## Scenarios tab: editable prepayables + bucket cash wiring (2026-06-09)
+
+**Editable prepayables:** removed the already-bought items (MacBook, UpDown desk)
+from the prepayable accordion - they are sunk costs, not a live decision. The
+prepayable list is now user-editable: add items (name + amount) and remove any
+item, persisted to localStorage alongside shared inputs and scenarios. The
+section defaults to open for discoverability. Default total is now $18,560.
+
+**Bucket company cash wiring:** the bucket slider previously changed only the tax
+breakdown, not the surplus, because calculate() never deducted the bucket
+distribution from cash. At Will's request (income-smoothing into a lower-income
+next year), wired it in: a bucket distribution now reduces cash available for the
+deposit by the full amount (parked in the company, drawn back next year subject
+to top-up tax). Added a "- To bucket company" cash-flow row, updated the slider
+hint and the footer cash-flow note. New test asserts bucket reduces business cash
+and surplus 1:1 while still attracting 25% company tax. This overrides the brief's
+"bucket ruled out" default per Will's explicit instruction.
+
+**Verification:** 31 vitest cases pass, build clean, astro check clean for new
+code, authenticated SSR render confirmed (prepayable rows + add form + remove
+buttons, $18,560 total, no already-bought items, bucket hint/footer updated, no
+dashes). Deployed.

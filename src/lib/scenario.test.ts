@@ -84,4 +84,16 @@ describe('calculate edge cases', () => {
     const shared = { ...DEFAULT_SHARED, personalCash: 10000 };
     expect(calculate(s, shared).personalCashEnd).toBeGreaterThanOrEqual(0);
   });
+
+  it('a bucket distribution reduces business cash and surplus by the same amount', () => {
+    const base = { ...DEFAULT_SCENARIOS[0], bucket: 0 };
+    const withBucket = { ...DEFAULT_SCENARIOS[0], bucket: 40000 };
+    const rBase = calculate(base, DEFAULT_SHARED);
+    const rBucket = calculate(withBucket, DEFAULT_SHARED);
+    // The full distribution leaves the cash available for the deposit.
+    expect(rBase.businessBankEnd - rBucket.businessBankEnd).toBeCloseTo(40000, 6);
+    expect(rBase.surplus - rBucket.surplus).toBeCloseTo(40000, 6);
+    // And it still attracts 25% company tax in the tax breakdown.
+    expect(rBucket.bucketTax).toBeCloseTo(10000, 6);
+  });
 });

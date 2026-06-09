@@ -3,6 +3,7 @@ import {
   DEFAULT_SHARED, DEFAULT_SCENARIOS,
   type Scenario, type SharedInputs as SharedInputsState,
 } from '../lib/scenario';
+import { DEFAULT_PREPAYABLES, type PrepayableItem } from '../data/expenses';
 import SharedInputs from './SharedInputs';
 import ScenarioGrid from './ScenarioGrid';
 import ExpenseAccordion from './ExpenseAccordion';
@@ -13,6 +14,7 @@ const STORAGE_KEY = 'hbo-scenarios-v1';
 export default function Scenarios() {
   const [shared, setShared] = useState<SharedInputsState>(DEFAULT_SHARED);
   const [scenarios, setScenarios] = useState<Scenario[]>(DEFAULT_SCENARIOS);
+  const [prepayables, setPrepayables] = useState<PrepayableItem[]>(DEFAULT_PREPAYABLES);
   const hydrated = useRef(false);
 
   // Load any saved state once on mount (localStorage is client-only).
@@ -25,6 +27,9 @@ export default function Scenarios() {
         if (Array.isArray(parsed.scenarios) && parsed.scenarios.length > 0) {
           setScenarios(parsed.scenarios);
         }
+        if (Array.isArray(parsed.prepayables)) {
+          setPrepayables(parsed.prepayables);
+        }
       }
     } catch {
       // Ignore corrupt storage and fall back to defaults.
@@ -36,11 +41,11 @@ export default function Scenarios() {
   useEffect(() => {
     if (!hydrated.current) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ shared, scenarios }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ shared, scenarios, prepayables }));
     } catch {
       // Storage may be unavailable (private mode); ignore.
     }
-  }, [shared, scenarios]);
+  }, [shared, scenarios, prepayables]);
 
   const updateShared = (field: keyof SharedInputsState, value: number) => {
     setShared((prev) => ({ ...prev, [field]: value }));
@@ -62,9 +67,18 @@ export default function Scenarios() {
     setScenarios((prev) => prev.map((sc) => (sc.id === id ? { ...sc, description } : sc)));
   };
 
+  const addPrepayable = (item: string, amount: number) => {
+    setPrepayables((prev) => [...prev, { id: crypto.randomUUID(), item, amount }]);
+  };
+
+  const removePrepayable = (id: string) => {
+    setPrepayables((prev) => prev.filter((p) => p.id !== id));
+  };
+
   const resetAll = () => {
     setShared(DEFAULT_SHARED);
     setScenarios(DEFAULT_SCENARIOS.map((sc) => ({ ...sc })));
+    setPrepayables(DEFAULT_PREPAYABLES.map((p) => ({ ...p })));
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch {
@@ -103,7 +117,11 @@ export default function Scenarios() {
         $650k and $750k).
       </div>
 
-      <ExpenseAccordion />
+      <ExpenseAccordion
+        prepayables={prepayables}
+        onAddPrepayable={addPrepayable}
+        onRemovePrepayable={removePrepayable}
+      />
 
       <SharedInputs shared={shared} onChange={updateShared} />
 
@@ -134,8 +152,10 @@ export default function Scenarios() {
         </p>
         <p>
           <strong style={s.footerStrong}>Cash flow logic:</strong> Super is funded from personal
-          cash first, topped up from the business. Prepay is paid directly by the business.
-          Personal income tax is assumed already covered by PAYG instalments paid through the
+          cash first, topped up from the business. Prepay is paid directly by the business. A
+          bucket-company distribution moves cash out to the corporate beneficiary, so it reduces
+          the cash available for the deposit (it is drawn back in a later year, subject to top-up
+          tax). Personal income tax is assumed already covered by PAYG instalments paid through the
           year, so it is not double-counted against the 30 June cash position.
         </p>
         <p>

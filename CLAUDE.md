@@ -72,10 +72,13 @@ assets/                  Personal financial reference docs (gitignored)
 
 The Scenarios tab is a client-only scenario planner (no API/D1 yet). Pure
 financial logic lives in `src/lib/*.ts` with vitest coverage (`npm run test`).
-State persists to localStorage under key `hbo-scenarios-v1`. Cash to settlement
-is a Jul-Oct revenue forecast netted by monthly outgoings (not a flat figure).
-The expense accordion reads static P&L data from `src/data/expenses.ts`. See the
-Scenarios section of PLAN.md for the phased build and deferred work.
+State persists to localStorage under key `hbo-scenarios-v1` (shared inputs,
+scenarios, and the editable prepayable list). Cash to settlement is a Jul-Oct
+revenue forecast netted by monthly outgoings (not a flat figure). A bucket
+distribution reduces cash available for the deposit (parked for a later year).
+The accordion's incurred figures are static P&L data in `src/data/expenses.ts`;
+its prepayable list seeds from there but is user-editable. See the Scenarios
+section of PLAN.md for the phased build and deferred work.
 
 ## API routes
 

@@ -1,16 +1,22 @@
 import { useState } from 'react';
 import {
-  INCURRED_EXPENSES, PREPAYABLE_EXPENSES, INCURRED_AS_AT, sumExpenses,
+  INCURRED_EXPENSES, INCURRED_AS_AT, sumExpenses, type PrepayableItem,
 } from '../data/expenses';
 import { fmt } from '../lib/format';
 
 type SectionId = 'incurred' | 'prepayable';
 
 const incurredTotal = sumExpenses(INCURRED_EXPENSES);
-const prepayableTotal = sumExpenses(PREPAYABLE_EXPENSES);
 
-export default function ExpenseAccordion() {
-  const [open, setOpen] = useState<Set<SectionId>>(new Set());
+interface Props {
+  prepayables: PrepayableItem[];
+  onAddPrepayable: (item: string, amount: number) => void;
+  onRemovePrepayable: (id: string) => void;
+}
+
+export default function ExpenseAccordion({ prepayables, onAddPrepayable, onRemovePrepayable }: Props) {
+  // Prepayable is open by default - it's the editable section the user manages.
+  const [open, setOpen] = useState<Set<SectionId>>(new Set(['prepayable']));
 
   const toggle = (id: SectionId) => {
     setOpen((prev) => {
@@ -20,6 +26,8 @@ export default function ExpenseAccordion() {
       return next;
     });
   };
+
+  const prepayableTotal = sumExpenses(prepayables);
 
   return (
     <div style={{ marginBottom: 16 }}>
@@ -49,21 +57,20 @@ export default function ExpenseAccordion() {
         <Section
           id="prepayable"
           title="Prepayable before 30 June"
-          subtitle="Confirmed bring-forward deductions"
+          subtitle="Bring-forward deductions you can add to or trim"
           total={prepayableTotal}
           isOpen={open.has('prepayable')}
           onToggle={toggle}
         >
-          {PREPAYABLE_EXPENSES.map((e) => (
+          {prepayables.map((e) => (
             <Row
-              key={e.item}
+              key={e.id}
               label={e.item}
               amount={e.amount}
-              badge={e.status === 'incurred'
-                ? { text: 'Already bought', bg: '#f5f5f4', color: '#78716c' }
-                : { text: 'Planned', bg: '#dcfce7', color: '#166534' }}
+              onRemove={() => onRemovePrepayable(e.id)}
             />
           ))}
+          <AddRow onAdd={onAddPrepayable} />
         </Section>
       </div>
     </div>
@@ -103,21 +110,67 @@ function Section({
 }
 
 function Row({
-  label, amount, badge,
+  label, amount, onRemove,
 }: {
   label: string;
   amount: number;
-  badge?: { text: string; bg: string; color: string };
+  onRemove?: () => void;
 }) {
   return (
     <div style={s.row}>
-      <span style={s.rowLabel}>
-        {label}
-        {badge && (
-          <span style={{ ...s.badge, background: badge.bg, color: badge.color }}>{badge.text}</span>
+      <span style={s.rowLabel}>{label}</span>
+      <span style={s.rowRight}>
+        <span style={s.rowAmount}>{fmt(amount)}</span>
+        {onRemove && (
+          <button type="button" onClick={onRemove} style={s.removeBtn} aria-label={`Remove ${label}`}>
+            &times;
+          </button>
         )}
       </span>
-      <span style={s.rowAmount}>{fmt(amount)}</span>
+    </div>
+  );
+}
+
+function AddRow({ onAdd }: { onAdd: (item: string, amount: number) => void }) {
+  const [name, setName] = useState('');
+  const [amount, setAmount] = useState('');
+
+  const parsedAmount = Number(amount);
+  const canAdd = name.trim() !== '' && parsedAmount > 0;
+
+  const submit = () => {
+    if (!canAdd) return;
+    onAdd(name.trim(), parsedAmount);
+    setName('');
+    setAmount('');
+  };
+
+  return (
+    <div style={s.addRow}>
+      <input
+        type="text"
+        value={name}
+        placeholder="Add an item"
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
+        style={s.addName}
+      />
+      <div style={s.addAmountWrap}>
+        <span style={s.addPrefix}>$</span>
+        <input
+          type="number"
+          inputMode="numeric"
+          value={amount}
+          placeholder="0"
+          min={0}
+          onChange={(e) => setAmount(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
+          style={s.addAmount}
+        />
+      </div>
+      <button type="button" onClick={submit} disabled={!canAdd} style={{ ...s.addBtn, ...(canAdd ? {} : s.addBtnDisabled) }}>
+        Add
+      </button>
     </div>
   );
 }
@@ -142,9 +195,27 @@ const s: Record<string, React.CSSProperties> = {
   },
   rows: { paddingBottom: 12, paddingLeft: 22, display: 'flex', flexDirection: 'column', gap: 6 },
   row: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, fontSize: 12 },
-  rowLabel: { color: '#57534e', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  rowAmount: { fontFamily: "'SF Mono', Menlo, monospace", color: '#1c1917', flexShrink: 0 },
-  badge: {
-    fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4, whiteSpace: 'nowrap',
+  rowLabel: { color: '#57534e', flex: 1 },
+  rowRight: { display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 },
+  rowAmount: { fontFamily: "'SF Mono', Menlo, monospace", color: '#1c1917' },
+  removeBtn: {
+    border: 'none', background: 'transparent', color: '#a8a29e', cursor: 'pointer',
+    fontSize: 16, lineHeight: 1, padding: '0 2px', borderRadius: 4,
   },
+  addRow: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, paddingTop: 10, borderTop: '1px dashed #e8e6df' },
+  addName: {
+    flex: 1, minWidth: 0, fontSize: 12, padding: '6px 8px', borderRadius: 6,
+    border: '1px solid #e8e6df', outline: 'none', color: '#1c1917',
+  },
+  addAmountWrap: { display: 'flex', alignItems: 'center', gap: 2, border: '1px solid #e8e6df', borderRadius: 6, padding: '0 8px' },
+  addPrefix: { color: '#a8a29e', fontSize: 12 },
+  addAmount: {
+    width: 72, textAlign: 'right', fontSize: 12, padding: '6px 0', border: 'none',
+    outline: 'none', fontFamily: "'SF Mono', Menlo, monospace", color: '#1c1917',
+  },
+  addBtn: {
+    fontSize: 12, fontWeight: 600, color: '#fff', background: '#166534', border: 'none',
+    borderRadius: 6, padding: '7px 14px', cursor: 'pointer', flexShrink: 0,
+  },
+  addBtnDisabled: { background: '#d6d3d1', cursor: 'not-allowed' },
 };
