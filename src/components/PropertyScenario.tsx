@@ -77,7 +77,7 @@ export default function PropertyScenario({
           <RangeInput
             label={<><IconBuilding size={12} />Bucket company</>}
             value={scenario.bucket} min={0} max={200000} step={500} prefix="$" size="sm"
-            hint="Smooths income to next year (25% now, top-up tax later). Parked funds reduce deposit cash."
+            hint="Tax timing: 25% now, draw back next FY at a lower rate. Moves the tax breakdown, not deposit cash."
             onChange={(v) => onFieldChange('bucket', v)}
           />
         </div>
@@ -104,9 +104,6 @@ export default function PropertyScenario({
       <div style={{ padding: '14px 16px', marginTop: 'auto' }}>
         <div style={s.sectionLabel}>Cash flow to settlement</div>
         <div style={s.breakdown}>
-          {scenario.bucket > 0 && (
-            <Row label="- To bucket company" value={`-${fmt(scenario.bucket)}`} />
-          )}
           <Row label="Business bank at 30 June" value={fmt(result.businessBankEnd)} />
           <Row label="Personal cash at 30 June" value={fmt(result.personalCashEnd)} />
           <Row label="Total cash at 30 June" value={fmt(result.totalCashAt30June)} divider />

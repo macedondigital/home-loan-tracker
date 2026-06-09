@@ -153,9 +153,10 @@ export default function Scenarios() {
         <p>
           <strong style={s.footerStrong}>Cash flow logic:</strong> Super is funded from personal
           cash first, topped up from the business. Prepay is paid directly by the business. A
-          bucket-company distribution moves cash out to the corporate beneficiary, so it reduces
-          the cash available for the deposit (it is drawn back in a later year, subject to top-up
-          tax). Personal income tax is assumed already covered by PAYG instalments paid through the
+          bucket-company distribution is a tax-timing lever: it cuts this year's personal tax, and
+          the funds are drawn back the next financial year (before settlement) so they stay
+          available for the deposit. The bucket therefore moves the tax breakdown, not the cash
+          flow. Personal income tax is assumed already covered by PAYG instalments paid through the
           year, so it is not double-counted against the 30 June cash position.
         </p>
         <p>

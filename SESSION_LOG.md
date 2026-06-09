@@ -170,3 +170,15 @@ and surplus 1:1 while still attracting 25% company tax. This overrides the brief
 code, authenticated SSR render confirmed (prepayable rows + add form + remove
 buttons, $18,560 total, no already-bought items, bucket hint/footer updated, no
 dashes). Deployed.
+
+## Correction: bucket company is tax-timing, not a deposit-cash reduction (2026-06-09)
+
+The prior entry wired the bucket distribution to reduce cash available for the
+deposit. That was based on a wrong assumption (funds parked until after
+settlement). Will's actual plan is to distribute to the bucket in June and draw
+the funds back in July, before the October settlement, so the money round-trips
+and stays available for the deposit. Reverted: the bucket now affects only the
+tax breakdown (this year's tax saving), not the cash flow / surplus - consistent
+with the model treating income tax as handled outside the deposit cash flow (PAYG
+/ franking). Updated the slider hint, the footer note, and the test (bucket
+changes tax and personal taxable, leaves business cash and surplus unchanged).

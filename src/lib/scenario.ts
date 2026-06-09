@@ -98,13 +98,13 @@ export function calculate(s: Scenario, shared: SharedInputs): ScenarioResult {
 
   // Cash flow at 30 June. Super is funded from personal cash first, topped up
   // from the business; prepay is paid by the business. A bucket-company
-  // distribution moves cash out of the business to the corporate beneficiary,
-  // so it leaves the pool available for the deposit (it is drawn back in a later
-  // year, subject to top-up tax). Personal income tax is assumed already covered
-  // by PAYG instalments, so it is not deducted here.
+  // distribution is a tax-timing lever, not a deposit-cash one: the funds are
+  // drawn back the following financial year (before the October settlement),
+  // so they remain available for the deposit. Like personal income tax (assumed
+  // covered by PAYG / franking), the bucket is not deducted from this cash flow.
   const superDrawFromBusiness = Math.max(0, s.superContrib - shared.personalCash);
   const personalCashUsedForSuper = Math.min(s.superContrib, shared.personalCash);
-  const businessBankEnd = shared.businessBank - s.prepaid - superDrawFromBusiness - s.bucket;
+  const businessBankEnd = shared.businessBank - s.prepaid - superDrawFromBusiness;
   const personalCashEnd = shared.personalCash - personalCashUsedForSuper;
   const totalCashAt30June = businessBankEnd + personalCashEnd;
 

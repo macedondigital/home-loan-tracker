@@ -85,15 +85,18 @@ describe('calculate edge cases', () => {
     expect(calculate(s, shared).personalCashEnd).toBeGreaterThanOrEqual(0);
   });
 
-  it('a bucket distribution reduces business cash and surplus by the same amount', () => {
+  it('treats a bucket distribution as tax-timing, not a deposit-cash change', () => {
     const base = { ...DEFAULT_SCENARIOS[0], bucket: 0 };
     const withBucket = { ...DEFAULT_SCENARIOS[0], bucket: 40000 };
     const rBase = calculate(base, DEFAULT_SHARED);
     const rBucket = calculate(withBucket, DEFAULT_SHARED);
-    // The full distribution leaves the cash available for the deposit.
-    expect(rBase.businessBankEnd - rBucket.businessBankEnd).toBeCloseTo(40000, 6);
-    expect(rBase.surplus - rBucket.surplus).toBeCloseTo(40000, 6);
-    // And it still attracts 25% company tax in the tax breakdown.
+    // Funds are drawn back before settlement, so deposit cash and surplus are
+    // unchanged by the bucket.
+    expect(rBucket.businessBankEnd).toBeCloseTo(rBase.businessBankEnd, 6);
+    expect(rBucket.surplus).toBeCloseTo(rBase.surplus, 6);
+    // The bucket still moves the tax breakdown: 25% company tax, and lower
+    // personal taxable (distribution routed away from personal income).
     expect(rBucket.bucketTax).toBeCloseTo(10000, 6);
+    expect(rBucket.personalTaxable).toBeCloseTo(rBase.personalTaxable - 40000, 6);
   });
 });
