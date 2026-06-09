@@ -85,6 +85,25 @@ describe('calculate edge cases', () => {
     expect(calculate(s, shared).personalCashEnd).toBeGreaterThanOrEqual(0);
   });
 
+  it('parks positive surplus in offset and computes the monthly interest saved', () => {
+    // Default Target has a +$3,430 surplus at 6.5%.
+    const r = calculate(DEFAULT_SCENARIOS[2], DEFAULT_SHARED);
+    expect(r.surplus).toBeGreaterThan(0);
+    expect(r.offsetBalance).toBeCloseTo(r.surplus, 6);
+    expect(r.offsetNetLoan).toBeCloseTo(r.loan - r.surplus, 6);
+    // Interest saved = offset * annual rate / 12.
+    expect(r.monthlyInterestSaved).toBeCloseTo((r.surplus * 0.065) / 12, 6);
+  });
+
+  it('parks nothing in offset when the scenario is in deficit', () => {
+    const shared = { ...DEFAULT_SHARED, businessBank: 40000 };
+    const r = calculate(DEFAULT_SCENARIOS[2], shared);
+    expect(r.surplus).toBeLessThan(0);
+    expect(r.offsetBalance).toBe(0);
+    expect(r.monthlyInterestSaved).toBe(0);
+    expect(r.offsetNetLoan).toBeCloseTo(r.loan, 6);
+  });
+
   it('treats a bucket distribution as tax-timing, not a deposit-cash change', () => {
     const base = { ...DEFAULT_SCENARIOS[0], bucket: 0 };
     const withBucket = { ...DEFAULT_SCENARIOS[0], bucket: 40000 };

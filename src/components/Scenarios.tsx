@@ -15,6 +15,7 @@ export default function Scenarios() {
   const [shared, setShared] = useState<SharedInputsState>(DEFAULT_SHARED);
   const [scenarios, setScenarios] = useState<Scenario[]>(DEFAULT_SCENARIOS);
   const [prepayables, setPrepayables] = useState<PrepayableItem[]>(DEFAULT_PREPAYABLES);
+  const [applyOffset, setApplyOffset] = useState(false);
   const hydrated = useRef(false);
 
   // Load any saved state once on mount (localStorage is client-only).
@@ -30,6 +31,9 @@ export default function Scenarios() {
         if (Array.isArray(parsed.prepayables)) {
           setPrepayables(parsed.prepayables);
         }
+        if (typeof parsed.applyOffset === 'boolean') {
+          setApplyOffset(parsed.applyOffset);
+        }
       }
     } catch {
       // Ignore corrupt storage and fall back to defaults.
@@ -41,11 +45,13 @@ export default function Scenarios() {
   useEffect(() => {
     if (!hydrated.current) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ shared, scenarios, prepayables }));
+      localStorage.setItem(
+        STORAGE_KEY, JSON.stringify({ shared, scenarios, prepayables, applyOffset }),
+      );
     } catch {
       // Storage may be unavailable (private mode); ignore.
     }
-  }, [shared, scenarios, prepayables]);
+  }, [shared, scenarios, prepayables, applyOffset]);
 
   const updateShared = (field: keyof SharedInputsState, value: number) => {
     setShared((prev) => ({ ...prev, [field]: value }));
@@ -79,6 +85,7 @@ export default function Scenarios() {
     setShared(DEFAULT_SHARED);
     setScenarios(DEFAULT_SCENARIOS.map((sc) => ({ ...sc })));
     setPrepayables(DEFAULT_PREPAYABLES.map((p) => ({ ...p })));
+    setApplyOffset(false);
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch {
@@ -127,11 +134,23 @@ export default function Scenarios() {
 
       <RevenueForecast shared={shared} onChange={updateShared} />
 
-      <div style={s.scenariosMeta}>{scenarios.length} property scenarios</div>
+      <div style={s.scenariosMetaRow}>
+        <span style={s.scenariosMeta}>{scenarios.length} property scenarios</span>
+        <label style={s.offsetToggle}>
+          <input
+            type="checkbox"
+            checked={applyOffset}
+            onChange={(e) => setApplyOffset(e.target.checked)}
+            style={{ accentColor: '#166534', width: 15, height: 15 }}
+          />
+          Put each scenario&apos;s surplus in offset
+        </label>
+      </div>
 
       <ScenarioGrid
         scenarios={scenarios}
         shared={shared}
+        applyOffset={applyOffset}
         onFieldChange={updateScenarioField}
         onNameChange={updateScenarioName}
         onDescChange={updateScenarioDesc}
@@ -187,9 +206,16 @@ const s: Record<string, React.CSSProperties> = {
     padding: '14px 16px', marginBottom: 16, background: '#f7fef9', border: '1px solid #bbf7d0',
     borderRadius: 12, fontSize: 13, color: '#57534e', lineHeight: 1.5,
   },
+  scenariosMetaRow: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    flexWrap: 'wrap', gap: 8, marginBottom: 12, marginTop: 8,
+  },
   scenariosMeta: {
     fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em',
-    color: '#78716c', marginBottom: 12, marginTop: 8,
+    color: '#78716c',
+  },
+  offsetToggle: {
+    display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#57534e', cursor: 'pointer',
   },
   footer: { marginTop: 24, padding: '0 4px', fontSize: 11, color: '#78716c', lineHeight: 1.5 },
   footerStrong: { color: '#57534e', fontWeight: 600 },

@@ -182,3 +182,21 @@ tax breakdown (this year's tax saving), not the cash flow / surplus - consistent
 with the model treating income tax as handled outside the deposit cash flow (PAYG
 / franking). Updated the slider hint, the footer note, and the test (bucket
 changes tax and personal taxable, leaves business cash and surplus unchanged).
+
+## Scenarios tab: surplus-in-offset toggle (2026-06-09)
+
+Added a global checkbox ("Put each scenario's surplus in offset"). When ticked,
+each scenario with a positive surplus shows the offset benefit: the surplus sits
+in an offset account against the full FHG loan, so the contracted repayment is
+unchanged and the cash stays accessible, but interest is charged only on
+(loan - offset), saving ~offset x rate / 12 per month. The card shows the monthly
+and annual interest saved and the net balance interest accrues on.
+
+Chosen over the originally-requested "extra deposit" framing (which was half-built
+then replaced): for a single parent wanting a liquid safety buffer, offset keeps
+the cash accessible and preserves the 98% FHG structure, while delivering the same
+interest benefit as a larger deposit. Toggle persists to localStorage.
+
+Engine adds offsetBalance / offsetNetLoan / monthlyInterestSaved to the result;
+two tests cover the positive-surplus and deficit (nothing to offset) cases.
+33 vitest cases pass, build clean, render verified.

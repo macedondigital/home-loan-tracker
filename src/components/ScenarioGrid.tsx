@@ -4,13 +4,14 @@ import PropertyScenario from './PropertyScenario';
 interface Props {
   scenarios: Scenario[];
   shared: SharedInputs;
+  applyOffset: boolean;
   onFieldChange: (id: number, field: 'propertyTarget' | 'superContrib' | 'prepaid' | 'bucket', value: number) => void;
   onNameChange: (id: number, value: string) => void;
   onDescChange: (id: number, value: string) => void;
 }
 
 export default function ScenarioGrid({
-  scenarios, shared, onFieldChange, onNameChange, onDescChange,
+  scenarios, shared, applyOffset, onFieldChange, onNameChange, onDescChange,
 }: Props) {
   return (
     <div style={s.grid}>
@@ -19,6 +20,7 @@ export default function ScenarioGrid({
           key={scenario.id}
           scenario={scenario}
           result={calculate(scenario, shared)}
+          applyOffset={applyOffset}
           onFieldChange={(field, value) => onFieldChange(scenario.id, field, value)}
           onNameChange={(value) => onNameChange(scenario.id, value)}
           onDescChange={(value) => onDescChange(scenario.id, value)}

@@ -7,13 +7,14 @@ import { IconHome, IconPiggy, IconReceipt, IconBuilding } from './scenario-icons
 interface Props {
   scenario: Scenario;
   result: ScenarioResult;
+  applyOffset: boolean;
   onFieldChange: (field: 'propertyTarget' | 'superContrib' | 'prepaid' | 'bucket', value: number) => void;
   onNameChange: (value: string) => void;
   onDescChange: (value: string) => void;
 }
 
 export default function PropertyScenario({
-  scenario, result, onFieldChange, onNameChange, onDescChange,
+  scenario, result, applyOffset, onFieldChange, onNameChange, onDescChange,
 }: Props) {
   const surplus = result.canAffordPurchase && result.bufferOk30June;
   const deficit = !result.canAffordPurchase;
@@ -126,6 +127,18 @@ export default function PropertyScenario({
             {'✗'} Business bank at 30 June is {fmt(Math.abs(result.bufferAmount30June))} below buffer
           </div>
         )}
+        {applyOffset && result.offsetBalance > 0 && (
+          <div style={s.offsetBox}>
+            <div style={s.offsetHeadline}>
+              {fmt(result.offsetBalance)} in offset saves ~{fmt(result.monthlyInterestSaved)}/mo
+            </div>
+            <div style={s.offsetSub}>
+              ~{fmt(result.monthlyInterestSaved * 12)}/yr interest. Repayment unchanged at{' '}
+              {fmt(result.monthlyRepayment)}/mo (interest charged on {fmt(result.offsetNetLoan)});
+              the cash stays accessible.
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -193,4 +206,11 @@ const s: Record<string, React.CSSProperties> = {
     marginTop: 8, padding: '6px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
     display: 'flex', alignItems: 'center', gap: 6, background: '#fef2f2', color: '#dc2626',
   },
+  offsetBox: {
+    marginTop: 8, padding: '8px 10px', borderRadius: 6, background: '#f0fdf4',
+    border: '1px solid #bbf7d0',
+  },
+  offsetHeadline: { fontSize: 12, fontWeight: 600, color: '#166534' },
+  offsetSub: { fontSize: 11, color: '#57534e', marginTop: 3, lineHeight: 1.4 },
 };
+

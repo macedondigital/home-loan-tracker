@@ -68,6 +68,10 @@ export interface ScenarioResult {
   totalCashAtSettlement: number;
   cashAvailableForPurchase: number;
   surplus: number;
+  // If any positive surplus is parked in an offset account against the loan
+  offsetBalance: number;
+  offsetNetLoan: number;
+  monthlyInterestSaved: number;
   // Status
   bufferOk30June: boolean;
   bufferAmount30June: number;
@@ -120,6 +124,14 @@ export function calculate(s: Scenario, shared: SharedInputs): ScenarioResult {
   const cashAvailableForPurchase = totalCashAtSettlement - shared.minBuffer;
   const surplus = cashAvailableForPurchase - cashNeeded;
 
+  // Optional: park any positive surplus in an offset account against the loan.
+  // The contracted repayment is unchanged (still on the full FHG loan) and the
+  // cash stays accessible, but interest is charged only on (loan - offset), so
+  // the offset saves roughly offset * rate / 12 of interest each month.
+  const offsetBalance = Math.max(0, surplus);
+  const offsetNetLoan = Math.max(0, loan - offsetBalance);
+  const monthlyInterestSaved = (offsetBalance * (shared.interestRate / 100)) / 12;
+
   // Status
   const bufferOk30June = businessBankEnd >= shared.minBuffer;
   const bufferAmount30June = businessBankEnd - shared.minBuffer;
@@ -152,6 +164,9 @@ export function calculate(s: Scenario, shared: SharedInputs): ScenarioResult {
     totalCashAtSettlement,
     cashAvailableForPurchase,
     surplus,
+    offsetBalance,
+    offsetNetLoan,
+    monthlyInterestSaved,
     bufferOk30June,
     bufferAmount30June,
     canAffordPurchase,
