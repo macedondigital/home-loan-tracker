@@ -222,3 +222,21 @@ liquidity) are accounted for.
 Also moved the Scenarios "surplus in offset" checkbox to below the scenario grid
 (was above it) per request. 39 vitest cases pass, build clean, both pages
 render-verified.
+
+## Offset vs Super: sequencing model + 25yr lock (2026-06-09)
+
+Added a "Your real plan: pay it off fast" section answering Will's actual
+question: with an aggressive 7-10 year payoff, is the $100k better into super now
+(locked, 9%, after entry tax) or onto the loan now (6%, tax-free, accessible in
+the home) then into super once the loan clears at year T? Modelled by tracking
+only the lump's fate (the rest of the repayment plan is identical, so the loan
+balance cancels): super-now = lump*(1-tax) compounding at the super rate;
+home-first = lump compounding at the loan rate until payoff year T, then at the
+super rate. New projectSequencing() in projection.ts with 4 tests (crossover at
+year 6 with 15% entry tax; flips to home-first winning at 30% Div 293).
+
+UI: a payoff-year input, a verdict, a second SVG chart (the Chart component was
+generalised to two named series), and a milestone table. Also switched the
+liquidity input from "age" to "years until super unlocks" (default 25) per Will
+(age 39, hedging that preservation age rises). 43 vitest cases pass; both charts
+render-verified.

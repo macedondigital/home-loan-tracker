@@ -59,7 +59,7 @@ src/
     stamp-duty.ts        Scenarios: VIC standard duty, no FHB concession (tested)
     loan.ts              Scenarios: monthly repayment (tested)
     scenario.ts          Scenarios: calculate() engine + defaults (tested)
-    projection.ts        Compare: offset vs super 30-year projection (tested)
+    projection.ts        Compare: offset-vs-super + super-now-vs-home-first projections (tested)
     format.ts            Scenarios/Compare: shared AUD currency formatting
   data/
     expenses.ts          Scenarios: incurred + prepayable expense data (from P&L)

@@ -1,21 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
-import { project, HORIZON_YEARS, type CompareInputs } from '../lib/projection';
+import { project, projectSequencing, HORIZON_YEARS, type CompareInputs } from '../lib/projection';
 import { fmt, fmtCompact } from '../lib/format';
 import RangeInput from './RangeInput';
 
 const STORAGE_KEY = 'hbo-compare-v1';
 
-type CompareState = CompareInputs & { age: number };
+type CompareState = CompareInputs & { lockYears: number; payoffYear: number };
 
 const DEFAULTS: CompareState = {
   lumpSum: 100000,
   offsetRatePct: 6,
   superRatePct: 9,
   superContribTaxPct: 15,
-  age: 45,
+  lockYears: 25,
+  payoffYear: 8,
 };
-
-const PRESERVATION_AGE = 60;
 
 const OFFSET_COLOR = '#2563eb';
 const SUPER_COLOR = '#166534';
@@ -48,7 +47,15 @@ export default function Compare() {
 
   const result = project(inputs);
   const { series, crossoverYear, offsetStart, superStart, finalDiff } = result;
-  const lockYears = Math.max(0, PRESERVATION_AGE - inputs.age);
+  const lockYears = inputs.lockYears;
+
+  const seq = projectSequencing({
+    lumpSum: inputs.lumpSum,
+    loanRatePct: inputs.offsetRatePct,
+    superRatePct: inputs.superRatePct,
+    superContribTaxPct: inputs.superContribTaxPct,
+    payoffYear: inputs.payoffYear,
+  });
 
   return (
     <div>
@@ -90,9 +97,9 @@ export default function Compare() {
             onChange={(v) => set('superContribTaxPct', v)}
           />
           <RangeInput
-            label="Your age" value={inputs.age} min={25} max={60} step={1} suffix="yrs"
-            hint={`Super unlocks at age ${PRESERVATION_AGE} (preservation age).`}
-            onChange={(v) => set('age', v)}
+            label="Years until super unlocks" value={inputs.lockYears} min={0} max={30} step={1} suffix="yrs"
+            hint="Preservation age is 60 (at 39, ~21 yrs). Allow more if you expect it to rise."
+            onChange={(v) => set('lockYears', v)}
           />
         </div>
         <div style={s.startRow}>
@@ -103,7 +110,11 @@ export default function Compare() {
 
       <div style={{ ...s.card, marginTop: 16 }}>
         <Verdict crossoverYear={crossoverYear} finalDiff={finalDiff} />
-        <Chart series={series} crossoverYear={crossoverYear} lockYears={lockYears} />
+        <Chart
+          data={series.map((p) => ({ year: p.year, a: p.offset, b: p.super }))}
+          colorA={OFFSET_COLOR} colorB={SUPER_COLOR}
+          crossoverYear={crossoverYear} crossoverLabel="Super overtakes" lockYears={lockYears}
+        />
         <div style={s.legend}>
           <span style={s.legendItem}><span style={{ ...s.swatch, background: OFFSET_COLOR }} /> Offset @ {inputs.offsetRatePct}%</span>
           <span style={s.legendItem}><span style={{ ...s.swatch, background: SUPER_COLOR }} /> Super @ {inputs.superRatePct}%</span>
@@ -113,7 +124,7 @@ export default function Compare() {
         </div>
         {lockYears > 0 && (
           <div style={s.lockNote}>
-            Super is locked for {lockYears} {lockYears === 1 ? 'year' : 'years'} (until age {PRESERVATION_AGE}).
+            Super is locked for {lockYears} {lockYears === 1 ? 'year' : 'years'} (until you can access it).
             Offset stays accessible the whole time, so any crossover inside the shaded years is a paper lead you cannot spend yet.
           </div>
         )}
@@ -147,6 +158,65 @@ export default function Compare() {
             })}
           </tbody>
         </table>
+      </div>
+
+      <div style={{ ...s.cardHeading, marginTop: 16 }}>Your real plan: pay it off fast</div>
+      <div style={s.card}>
+        <p style={s.note}>
+          You will clear the loan in a few years, then build super hard. So the real question for
+          the {fmt(inputs.lumpSum)} is timing: into super now (locked, {inputs.superRatePct}%), or onto
+          the loan now ({inputs.offsetRatePct}% and accessible in your home) and into super once the loan
+          clears? This tracks only the {fmt(inputs.lumpSum)} - the rest of your repayment plan is the
+          same either way.
+        </p>
+        <div style={{ maxWidth: 320, marginBottom: 16 }}>
+          <RangeInput
+            label="Loan paid off in" value={inputs.payoffYear} min={1} max={20} step={1} suffix="yrs"
+            hint="When the loan clears and 'home first' switches to super."
+            onChange={(v) => set('payoffYear', v)}
+          />
+        </div>
+        <SeqVerdict crossoverYear={seq.crossoverYear} finalDiff={seq.finalDiff} payoffYear={inputs.payoffYear} />
+        <Chart
+          data={seq.series.map((p) => ({ year: p.year, a: p.homeFirst, b: p.superNow }))}
+          colorA={OFFSET_COLOR} colorB={SUPER_COLOR}
+          crossoverYear={seq.crossoverYear} crossoverLabel="Super-now overtakes"
+        />
+        <div style={s.legend}>
+          <span style={s.legendItem}><span style={{ ...s.swatch, background: OFFSET_COLOR }} /> Home first, then super</span>
+          <span style={s.legendItem}><span style={{ ...s.swatch, background: SUPER_COLOR }} /> Super now</span>
+        </div>
+        <table style={{ ...s.table, marginTop: 16 }}>
+          <thead>
+            <tr>
+              <th style={s.th}>Year</th>
+              <th style={{ ...s.th, textAlign: 'right' }}>Super now</th>
+              <th style={{ ...s.th, textAlign: 'right' }}>Home first</th>
+              <th style={{ ...s.th, textAlign: 'right' }}>Difference</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[10, 15, 20, 30].map((y) => {
+              const row = seq.series[y];
+              const ahead = row.diff >= 0;
+              return (
+                <tr key={y}>
+                  <td style={s.td}>{y}</td>
+                  <td style={s.tdNum}>{fmt(row.superNow)}</td>
+                  <td style={s.tdNum}>{fmt(row.homeFirst)}</td>
+                  <td style={{ ...s.tdNum, color: ahead ? SUPER_COLOR : OFFSET_COLOR, fontWeight: 600 }}>
+                    {ahead ? 'super +' : 'home +'}{fmt(Math.abs(row.diff))}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <p style={s.seqCaveat}>
+          Assumes 'home first' redirects to super (after-tax) once the loan clears. Ignores the
+          $30k concessional cap and the deduction on concessional contributions (both favour
+          super), and Div 293. Indicative, not advice.
+        </p>
       </div>
 
       <div style={s.footer}>
@@ -188,30 +258,49 @@ function Verdict({ crossoverYear, finalDiff }: { crossoverYear: number | null; f
   return <div style={s.verdict}>{text}</div>;
 }
 
-function Chart({ series, crossoverYear, lockYears }: { series: { year: number; offset: number; super: number }[]; crossoverYear: number | null; lockYears: number }) {
+function SeqVerdict({ crossoverYear, finalDiff, payoffYear }: { crossoverYear: number | null; finalDiff: number; payoffYear: number }) {
+  let text: React.ReactNode;
+  if (crossoverYear === null) {
+    text = <>Paying the home down first stays ahead for the full {HORIZON_YEARS} years - by {fmt(Math.abs(finalDiff))} at year {HORIZON_YEARS} - and your cash stays accessible until the loan clears around year {payoffYear}.</>;
+  } else if (crossoverYear === 0) {
+    text = <>Super now leads from the start and is ahead by {fmt(finalDiff)} at year {HORIZON_YEARS}.</>;
+  } else {
+    text = <>Home first leads early, and keeps the cash accessible; <strong>super now overtakes at year {crossoverYear}</strong> and is ahead by {fmt(finalDiff)} at year {HORIZON_YEARS}.</>;
+  }
+  return <div style={s.verdict}>{text}</div>;
+}
+
+function Chart({ data, colorA, colorB, crossoverYear, crossoverLabel, lockYears }: {
+  data: { year: number; a: number; b: number }[];
+  colorA: string;
+  colorB: string;
+  crossoverYear: number | null;
+  crossoverLabel: string;
+  lockYears?: number;
+}) {
   const W = 640, H = 300;
   const padL = 56, padR = 16, padT = 16, padB = 30;
   const x0 = padL, x1 = W - padR, y0 = padT, y1 = H - padB;
   const plotW = x1 - x0, plotH = y1 - y0;
 
-  const last = series[series.length - 1];
-  const yMax = Math.max(last.offset, last.super) * 1.05 || 1;
+  const last = data[data.length - 1];
+  const yMax = Math.max(last.a, last.b) * 1.05 || 1;
 
   const xScale = (year: number) => x0 + (year / HORIZON_YEARS) * plotW;
   const yScale = (v: number) => y1 - (v / yMax) * plotH;
 
-  const line = (key: 'offset' | 'super') =>
-    series.map((p) => `${xScale(p.year).toFixed(1)},${yScale(p[key]).toFixed(1)}`).join(' ');
+  const line = (key: 'a' | 'b') =>
+    data.map((p) => `${xScale(p.year).toFixed(1)},${yScale(p[key]).toFixed(1)}`).join(' ');
 
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * yMax);
   const xTicks = [0, 5, 10, 15, 20, 25, 30];
   const showCross = crossoverYear !== null && crossoverYear > 0 && crossoverYear < HORIZON_YEARS;
   const crossX = showCross ? xScale(crossoverYear as number) : 0;
-  const crossPt = showCross ? series[crossoverYear as number] : null;
-  const lockX = lockYears > 0 && lockYears <= HORIZON_YEARS ? xScale(lockYears) : null;
+  const crossPt = showCross ? data[crossoverYear as number] : null;
+  const lockX = lockYears && lockYears > 0 && lockYears <= HORIZON_YEARS ? xScale(lockYears) : null;
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }} role="img" aria-label="Offset versus super over 30 years">
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }} role="img" aria-label="Two strategies over 30 years">
       {lockX !== null && (
         <g>
           <rect x={x0} y={y0} width={lockX - x0} height={plotH} fill="#fffbeb" />
@@ -235,15 +324,15 @@ function Chart({ series, crossoverYear, lockYears }: { series: { year: number; o
       {showCross && crossPt && (
         <g>
           <line x1={crossX} y1={y0} x2={crossX} y2={y1} stroke="#d6d3d1" strokeWidth={1} strokeDasharray="3 3" />
-          <circle cx={crossX} cy={yScale(crossPt.super)} r={4} fill="#166534" />
-          <text x={crossX} y={y0 + 12} textAnchor={crossoverYear! > HORIZON_YEARS / 2 ? 'end' : 'start'} fontSize={10} fontWeight={600} fill="#166534">
-            {`Super overtakes · yr ${crossoverYear}`}
+          <circle cx={crossX} cy={yScale(crossPt.b)} r={4} fill={colorB} />
+          <text x={crossX} y={y0 + 12} textAnchor={crossoverYear! > HORIZON_YEARS / 2 ? 'end' : 'start'} fontSize={10} fontWeight={600} fill={colorB}>
+            {`${crossoverLabel} · yr ${crossoverYear}`}
           </text>
         </g>
       )}
 
-      <polyline points={line('offset')} fill="none" stroke={OFFSET_COLOR} strokeWidth={2} strokeLinejoin="round" />
-      <polyline points={line('super')} fill="none" stroke={SUPER_COLOR} strokeWidth={2} strokeLinejoin="round" />
+      <polyline points={line('a')} fill="none" stroke={colorA} strokeWidth={2} strokeLinejoin="round" />
+      <polyline points={line('b')} fill="none" stroke={colorB} strokeWidth={2} strokeLinejoin="round" />
     </svg>
   );
 }
@@ -288,6 +377,8 @@ const s: Record<string, React.CSSProperties> = {
     fontSize: 13, color: '#1c1917', padding: '8px 0', borderBottom: '1px solid #f5f5f4',
     textAlign: 'right', fontFamily: "'SF Mono', Menlo, monospace",
   },
+  note: { fontSize: 13, color: '#57534e', lineHeight: 1.5, marginBottom: 14, marginTop: 0 },
+  seqCaveat: { fontSize: 11, color: '#a8a29e', lineHeight: 1.4, marginTop: 12, marginBottom: 0 },
   footer: { marginTop: 24, padding: '0 4px', fontSize: 11, color: '#78716c', lineHeight: 1.5 },
   footerStrong: { color: '#57534e', fontWeight: 600 },
 };

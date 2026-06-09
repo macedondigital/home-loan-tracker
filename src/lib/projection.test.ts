@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { project, HORIZON_YEARS } from './projection';
+import { project, projectSequencing, HORIZON_YEARS } from './projection';
 
 const DEFAULTS = {
   lumpSum: 100000,
@@ -50,5 +50,43 @@ describe('project (offset vs super)', () => {
     const r = project(DEFAULTS);
     expect(r.finalDiff).toBeCloseTo(r.series[HORIZON_YEARS].super - r.series[HORIZON_YEARS].offset, 6);
     expect(r.finalDiff).toBeGreaterThan(0); // super well ahead by year 30
+  });
+});
+
+const SEQ_DEFAULTS = {
+  lumpSum: 100000,
+  loanRatePct: 6,
+  superRatePct: 9,
+  superContribTaxPct: 15,
+  payoffYear: 8,
+};
+
+describe('projectSequencing (super now vs home first)', () => {
+  it('starts super-now net of tax and home-first at the full lump', () => {
+    const r = projectSequencing(SEQ_DEFAULTS);
+    expect(r.series[0].superNow).toBeCloseTo(85000, 6);
+    expect(r.series[0].homeFirst).toBeCloseTo(100000, 6);
+  });
+
+  it('grows home-first at the loan rate until payoff, then at the super rate', () => {
+    const r = projectSequencing(SEQ_DEFAULTS);
+    // Year 8 (payoff): still loan-rate growth.
+    expect(r.series[8].homeFirst).toBeCloseTo(100000 * Math.pow(1.06, 8), 4);
+    // Year 9: one year of super growth on top of the year-8 value.
+    expect(r.series[9].homeFirst).toBeCloseTo(100000 * Math.pow(1.06, 8) * 1.09, 4);
+  });
+
+  it('has super-now overtake home-first around year 6 with the 15% entry tax', () => {
+    const r = projectSequencing(SEQ_DEFAULTS);
+    expect(r.series[5].superNow).toBeLessThan(r.series[5].homeFirst);
+    expect(r.series[6].superNow).toBeGreaterThan(r.series[6].homeFirst);
+    expect(r.crossoverYear).toBe(6);
+  });
+
+  it('flips to home-first winning when the entry tax is 30% (Div 293)', () => {
+    const r = projectSequencing({ ...SEQ_DEFAULTS, superContribTaxPct: 30 });
+    // 70k start in super never catches the 100k home-first path by year 30.
+    expect(r.crossoverYear).toBeNull();
+    expect(r.finalDiff).toBeLessThan(0);
   });
 });
