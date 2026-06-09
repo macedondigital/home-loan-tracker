@@ -5,18 +5,23 @@ import RangeInput from './RangeInput';
 
 const STORAGE_KEY = 'hbo-compare-v1';
 
-const DEFAULTS: CompareInputs = {
+type CompareState = CompareInputs & { age: number };
+
+const DEFAULTS: CompareState = {
   lumpSum: 100000,
   offsetRatePct: 6,
   superRatePct: 9,
   superContribTaxPct: 15,
+  age: 45,
 };
+
+const PRESERVATION_AGE = 60;
 
 const OFFSET_COLOR = '#2563eb';
 const SUPER_COLOR = '#166534';
 
 export default function Compare() {
-  const [inputs, setInputs] = useState<CompareInputs>(DEFAULTS);
+  const [inputs, setInputs] = useState<CompareState>(DEFAULTS);
   const hydrated = useRef(false);
 
   useEffect(() => {
@@ -38,11 +43,12 @@ export default function Compare() {
     }
   }, [inputs]);
 
-  const set = (field: keyof CompareInputs, value: number) =>
+  const set = (field: keyof CompareState, value: number) =>
     setInputs((prev) => ({ ...prev, [field]: value }));
 
   const result = project(inputs);
   const { series, crossoverYear, offsetStart, superStart, finalDiff } = result;
+  const lockYears = Math.max(0, PRESERVATION_AGE - inputs.age);
 
   return (
     <div>
@@ -83,6 +89,11 @@ export default function Compare() {
             hint="15% concessional (30% with Div 293; 0% for after-tax contributions)."
             onChange={(v) => set('superContribTaxPct', v)}
           />
+          <RangeInput
+            label="Your age" value={inputs.age} min={25} max={60} step={1} suffix="yrs"
+            hint={`Super unlocks at age ${PRESERVATION_AGE} (preservation age).`}
+            onChange={(v) => set('age', v)}
+          />
         </div>
         <div style={s.startRow}>
           <span><span style={{ ...s.dot, background: OFFSET_COLOR }} /> Into offset: <strong>{fmt(offsetStart)}</strong></span>
@@ -92,11 +103,20 @@ export default function Compare() {
 
       <div style={{ ...s.card, marginTop: 16 }}>
         <Verdict crossoverYear={crossoverYear} finalDiff={finalDiff} />
-        <Chart series={series} crossoverYear={crossoverYear} />
+        <Chart series={series} crossoverYear={crossoverYear} lockYears={lockYears} />
         <div style={s.legend}>
           <span style={s.legendItem}><span style={{ ...s.swatch, background: OFFSET_COLOR }} /> Offset @ {inputs.offsetRatePct}%</span>
           <span style={s.legendItem}><span style={{ ...s.swatch, background: SUPER_COLOR }} /> Super @ {inputs.superRatePct}%</span>
+          {lockYears > 0 && (
+            <span style={s.legendItem}><span style={{ ...s.swatch, background: '#fde68a', width: 14, height: 10 }} /> Super locked</span>
+          )}
         </div>
+        {lockYears > 0 && (
+          <div style={s.lockNote}>
+            Super is locked for {lockYears} {lockYears === 1 ? 'year' : 'years'} (until age {PRESERVATION_AGE}).
+            Offset stays accessible the whole time, so any crossover inside the shaded years is a paper lead you cannot spend yet.
+          </div>
+        )}
       </div>
 
       <div style={{ ...s.cardHeading, marginTop: 16 }}>At a glance</div>
@@ -168,7 +188,7 @@ function Verdict({ crossoverYear, finalDiff }: { crossoverYear: number | null; f
   return <div style={s.verdict}>{text}</div>;
 }
 
-function Chart({ series, crossoverYear }: { series: { year: number; offset: number; super: number }[]; crossoverYear: number | null }) {
+function Chart({ series, crossoverYear, lockYears }: { series: { year: number; offset: number; super: number }[]; crossoverYear: number | null; lockYears: number }) {
   const W = 640, H = 300;
   const padL = 56, padR = 16, padT = 16, padB = 30;
   const x0 = padL, x1 = W - padR, y0 = padT, y1 = H - padB;
@@ -188,9 +208,19 @@ function Chart({ series, crossoverYear }: { series: { year: number; offset: numb
   const showCross = crossoverYear !== null && crossoverYear > 0 && crossoverYear < HORIZON_YEARS;
   const crossX = showCross ? xScale(crossoverYear as number) : 0;
   const crossPt = showCross ? series[crossoverYear as number] : null;
+  const lockX = lockYears > 0 && lockYears <= HORIZON_YEARS ? xScale(lockYears) : null;
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }} role="img" aria-label="Offset versus super over 30 years">
+      {lockX !== null && (
+        <g>
+          <rect x={x0} y={y0} width={lockX - x0} height={plotH} fill="#fffbeb" />
+          <line x1={lockX} y1={y0} x2={lockX} y2={y1} stroke="#b45309" strokeWidth={1} strokeDasharray="3 3" />
+          <text x={lockX - 4} y={y1 - 6} textAnchor="end" fontSize={10} fontWeight={600} fill="#b45309">
+            Super locked
+          </text>
+        </g>
+      )}
       {yTicks.map((v, i) => (
         <g key={i}>
           <line x1={x0} y1={yScale(v)} x2={x1} y2={yScale(v)} stroke="#f5f5f4" strokeWidth={1} />
@@ -241,7 +271,11 @@ const s: Record<string, React.CSSProperties> = {
     fontSize: 14, color: '#1c1917', lineHeight: 1.5, marginBottom: 14,
     paddingBottom: 14, borderBottom: '1px solid #f5f5f4',
   },
-  legend: { display: 'flex', gap: 18, justifyContent: 'center', marginTop: 10 },
+  legend: { display: 'flex', gap: 18, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' },
+  lockNote: {
+    marginTop: 12, padding: '8px 10px', borderRadius: 6, background: '#fffbeb',
+    border: '1px solid #fde68a', fontSize: 12, color: '#92400e', lineHeight: 1.4,
+  },
   legendItem: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#57534e' },
   swatch: { display: 'inline-block', width: 14, height: 3, borderRadius: 2 },
   table: { width: '100%', borderCollapse: 'collapse' },
