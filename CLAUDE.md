@@ -32,6 +32,8 @@ src/
     SharedInputs.tsx     Scenarios: income/cash/loan input cards
     ScenarioGrid.tsx     Scenarios: 3-up responsive grid
     PropertyScenario.tsx Scenarios: single scenario card
+    RevenueForecast.tsx  Scenarios: Jul-Oct revenue forecast + outgoings
+    ExpenseAccordion.tsx Scenarios: incurred + prepayable expense accordion
     RangeInput.tsx       Scenarios: reusable number-box + slider
     scenario-icons.tsx   Scenarios: inline SVG icon set
     ErrorBoundary.tsx    (61 lines)  React error boundary
@@ -55,6 +57,9 @@ src/
     stamp-duty.ts        Scenarios: VIC standard duty, no FHB concession (tested)
     loan.ts              Scenarios: monthly repayment (tested)
     scenario.ts          Scenarios: calculate() engine + defaults (tested)
+    format.ts            Scenarios: shared AUD currency formatting
+  data/
+    expenses.ts          Scenarios: incurred + prepayable expense data (from P&L)
   middleware.ts          Auth check on all routes
 migrations/
   0001_init.sql          Core tables
@@ -67,8 +72,10 @@ assets/                  Personal financial reference docs (gitignored)
 
 The Scenarios tab is a client-only scenario planner (no API/D1 yet). Pure
 financial logic lives in `src/lib/*.ts` with vitest coverage (`npm run test`).
-State persists to localStorage under key `hbo-scenarios-v1`. See the Scenarios
-section of PLAN.md for the phased build and deferred work.
+State persists to localStorage under key `hbo-scenarios-v1`. Cash to settlement
+is a Jul-Oct revenue forecast netted by monthly outgoings (not a flat figure).
+The expense accordion reads static P&L data from `src/data/expenses.ts`. See the
+Scenarios section of PLAN.md for the phased build and deferred work.
 
 ## API routes
 

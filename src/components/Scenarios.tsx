@@ -5,6 +5,8 @@ import {
 } from '../lib/scenario';
 import SharedInputs from './SharedInputs';
 import ScenarioGrid from './ScenarioGrid';
+import ExpenseAccordion from './ExpenseAccordion';
+import RevenueForecast from './RevenueForecast';
 
 const STORAGE_KEY = 'hbo-scenarios-v1';
 
@@ -101,7 +103,11 @@ export default function Scenarios() {
         $650k and $750k).
       </div>
 
+      <ExpenseAccordion />
+
       <SharedInputs shared={shared} onChange={updateShared} />
+
+      <RevenueForecast shared={shared} onChange={updateShared} />
 
       <div style={s.scenariosMeta}>{scenarios.length} property scenarios</div>
 

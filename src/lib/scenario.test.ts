@@ -26,16 +26,43 @@ describe('calculate (default Target $750k scenario, default shared inputs)', () 
     expect(r.businessBankEnd).toBeCloseTo(47500, 6); // 140000 - 22500 prepay - 70000 super top-up
     expect(r.personalCashEnd).toBeCloseTo(0, 6); // 10000 - 10000 to super
     expect(r.totalCashAt30June).toBeCloseTo(47500, 6);
-    expect(r.cashGrowthToSettle).toBeCloseTo(40000, 6); // 10000 * 4
-    expect(r.totalCashAtSettlement).toBeCloseTo(87500, 6);
-    expect(r.cashAvailableForPurchase).toBeCloseTo(57500, 6); // less 30000 buffer
-    expect(r.surplus).toBeCloseTo(-4570, 6); // 57500 - 62070
+    // Revenue 25000 x4 = 100000, less outgoings 13000 x4 = 52000 -> net 48000.
+    expect(r.totalRevenueForecast).toBeCloseTo(100000, 6);
+    expect(r.totalOutgoingsForecast).toBeCloseTo(52000, 6);
+    expect(r.cashGrowthToSettle).toBeCloseTo(48000, 6);
+    expect(r.totalCashAtSettlement).toBeCloseTo(95500, 6); // 47500 + 48000
+    expect(r.cashAvailableForPurchase).toBeCloseTo(65500, 6); // less 30000 buffer
+    expect(r.surplus).toBeCloseTo(3430, 6); // 65500 - 62070
   });
 
   it('computes status flags', () => {
     expect(r.bufferOk30June).toBe(true); // 47500 >= 30000
-    expect(r.canAffordPurchase).toBe(false); // deficit
+    expect(r.canAffordPurchase).toBe(true); // surplus with the revenue forecast
     expect(r.superExceeded).toBe(false); // 80000 < 152610 cap
+  });
+});
+
+describe('calculate revenue-forecast netting', () => {
+  it('nets forecast revenue down by monthly outgoings over four months', () => {
+    const shared = {
+      ...DEFAULT_SHARED,
+      revenueJul: 30000, revenueAug: 20000, revenueSep: 25000, revenueOct: 15000,
+      monthlyOutgoings: 12000,
+    };
+    const r = calculate(DEFAULT_SCENARIOS[0], shared);
+    expect(r.totalRevenueForecast).toBeCloseTo(90000, 6);
+    expect(r.totalOutgoingsForecast).toBeCloseTo(48000, 6); // 12000 * 4
+    expect(r.cashGrowthToSettle).toBeCloseTo(42000, 6); // 90000 - 48000
+  });
+
+  it('allows negative cash growth when outgoings exceed revenue', () => {
+    const shared = {
+      ...DEFAULT_SHARED,
+      revenueJul: 8000, revenueAug: 8000, revenueSep: 8000, revenueOct: 8000,
+      monthlyOutgoings: 13000,
+    };
+    const r = calculate(DEFAULT_SCENARIOS[0], shared);
+    expect(r.cashGrowthToSettle).toBeCloseTo(-20000, 6); // 32000 - 52000
   });
 });
 

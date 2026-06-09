@@ -1,9 +1,7 @@
 import type { ReactNode } from 'react';
 import type { SharedInputs as SharedInputsState } from '../lib/scenario';
 import RangeInput from './RangeInput';
-import {
-  IconTrust, IconWallet, IconBuilding, IconTrend, IconCalendar, IconShield,
-} from './scenario-icons';
+import { IconTrust, IconWallet, IconBuilding } from './scenario-icons';
 
 interface FieldConfig {
   field: keyof SharedInputsState;
@@ -40,26 +38,6 @@ const GROUPS: Group[] = [
         field: 'businessBank', label: 'Business bank (30 June projected)', icon: <IconBuilding />, prefix: '$',
         min: 0, max: 300000, step: 5000,
         hint: '9 June actual: $120k. Projection adds expected June revenue net of spending.',
-      },
-    ],
-  },
-  {
-    heading: 'Cash growth to settlement',
-    fields: [
-      {
-        field: 'monthlyCashGrowth', label: 'Net cash savings per month (post 30 June)', icon: <IconTrend />, prefix: '$',
-        min: 0, max: 30000, step: 1000,
-        hint: 'Avg monthly cash retention after personal tax, drawings, business costs.',
-      },
-      {
-        field: 'monthsToSettle', label: 'Months to settlement', icon: <IconCalendar />, suffix: 'months',
-        min: 1, max: 8, step: 1,
-        hint: 'Jul-Oct = 4 months. Push higher if settlement slips.',
-      },
-      {
-        field: 'minBuffer', label: 'Min business buffer', icon: <IconShield />, prefix: '$',
-        min: 0, max: 100000, step: 1000,
-        hint: 'Cash to keep in business bank as ongoing safety buffer.',
       },
     ],
   },

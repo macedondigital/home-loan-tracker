@@ -8,14 +8,21 @@ import { calcPersonalTax, calcDiv293, SUPER_TOTAL_CAP } from './tax';
 // Family Home Guarantee: 98% LVR (2% deposit, no LMI).
 export const LVR_FHG = 0.98;
 
-// Inputs shared across all scenarios.
+// Inputs shared across all scenarios. The four months to settlement (Jul-Oct
+// 2026) are forecast individually, then netted down by a single monthly
+// outgoings figure (business costs + living + tax set-aside).
+export const FORECAST_MONTHS = 4;
+
 export interface SharedInputs {
   trustProfit: number;
   personalCash: number;
   businessBank: number;
   minBuffer: number;
-  monthlyCashGrowth: number;
-  monthsToSettle: number;
+  revenueJul: number;
+  revenueAug: number;
+  revenueSep: number;
+  revenueOct: number;
+  monthlyOutgoings: number;
   interestRate: number;
   loanYears: number;
   otherCosts: number;
@@ -55,6 +62,8 @@ export interface ScenarioResult {
   businessBankEnd: number;
   personalCashEnd: number;
   totalCashAt30June: number;
+  totalRevenueForecast: number;
+  totalOutgoingsForecast: number;
   cashGrowthToSettle: number;
   totalCashAtSettlement: number;
   cashAvailableForPurchase: number;
@@ -96,8 +105,12 @@ export function calculate(s: Scenario, shared: SharedInputs): ScenarioResult {
   const personalCashEnd = shared.personalCash - personalCashUsedForSuper;
   const totalCashAt30June = businessBankEnd + personalCashEnd;
 
-  // Cash at settlement.
-  const cashGrowthToSettle = shared.monthlyCashGrowth * shared.monthsToSettle;
+  // Cash at settlement. Forecast revenue for Jul-Oct, netted down by monthly
+  // outgoings. Can be negative if outgoings exceed forecast revenue.
+  const totalRevenueForecast =
+    shared.revenueJul + shared.revenueAug + shared.revenueSep + shared.revenueOct;
+  const totalOutgoingsForecast = shared.monthlyOutgoings * FORECAST_MONTHS;
+  const cashGrowthToSettle = totalRevenueForecast - totalOutgoingsForecast;
   const totalCashAtSettlement = totalCashAt30June + cashGrowthToSettle;
 
   // Required vs available (must also retain the minimum business buffer).
@@ -130,6 +143,8 @@ export function calculate(s: Scenario, shared: SharedInputs): ScenarioResult {
     businessBankEnd,
     personalCashEnd,
     totalCashAt30June,
+    totalRevenueForecast,
+    totalOutgoingsForecast,
     cashGrowthToSettle,
     totalCashAtSettlement,
     cashAvailableForPurchase,
@@ -146,8 +161,11 @@ export const DEFAULT_SHARED: SharedInputs = {
   personalCash: 10000,
   businessBank: 140000,
   minBuffer: 30000,
-  monthlyCashGrowth: 10000,
-  monthsToSettle: 4,
+  revenueJul: 25000,
+  revenueAug: 25000,
+  revenueSep: 25000,
+  revenueOct: 25000,
+  monthlyOutgoings: 13000,
   interestRate: 6.5,
   loanYears: 30,
   otherCosts: 7000,

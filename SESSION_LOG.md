@@ -117,3 +117,33 @@ forecasting, D1 persistence, link monthly cash growth to Spending-tab actuals.
 for new code, authenticated SSR render verified locally, deployed and live.
 
 **Project status: Scenarios tab live at https://home-loan-tracker.pages.dev/scenarios**
+
+## Scenarios tab: expense accordion + Jul-Oct revenue forecast (2026-06-09)
+
+**Completed:**
+- Revenue forecast replacing the flat cash-growth model: editable Jul/Aug/Sep/Oct
+  revenue (default $25k each) netted down by a single monthly-outgoings input
+  (default $13k). Net cash to settlement = sum(revenue) - outgoings x4. With
+  defaults this is ~$48k and flips the $750k Target from a deficit to a +$3,430
+  surplus. Removed the old monthlyCashGrowth + monthsToSettle inputs.
+- Expense accordion (new ExpenseAccordion.tsx) reading static P&L data from
+  src/data/expenses.ts: "Already incurred (FY25-26)" $87,321.68 across 22
+  categories, and "Prepayable before 30 June" $24,737 across 8 items (MacBook and
+  desk flagged already-bought). Includes a neutral framing note on the
+  spend-vs-super-vs-bucket tradeoff.
+- Extracted shared AUD formatting into src/lib/format.ts (reused by
+  PropertyScenario, RevenueForecast, ExpenseAccordion).
+
+**Data integrity catch:** the QuickBooks XLSX was read directly (unzip + parse)
+rather than trusting a secondhand summary. The summary had missed $15,212.32 of
+"Contractor Expenses" parent-level postings (counting only the 3 itemised
+children). Corrected to the true contractor total of $27,104, so the 22
+categories now reconcile exactly to $87,321.68. The transactions CSV the user
+mentioned did not land in assets/ (only 3 bank-statement PDFs + 2 P&L XLSX);
+P&L category totals were sufficient.
+
+**Verification:** npm run test (30/30), npm run build clean, astro check clean
+for new code, authenticated SSR render verified (net summary $48,000, all three
+scenarios Affordable, accordion totals correct, no dashes), deployed.
+
+**Project status: Scenarios tab v2 live at https://home-loan-tracker.pages.dev/scenarios**

@@ -1,21 +1,8 @@
 import type { Scenario, ScenarioResult } from '../lib/scenario';
 import { SUPER_TOTAL_CAP, SUPER_CARRY_FORWARD } from '../lib/tax';
+import { fmt, fmtCompact } from '../lib/format';
 import RangeInput from './RangeInput';
 import { IconHome, IconPiggy, IconReceipt, IconBuilding } from './scenario-icons';
-
-const fmt = (n: number): string => {
-  if (n === null || n === undefined || Number.isNaN(n)) return '$0';
-  const sign = n < 0 ? '-' : '';
-  return sign + new Intl.NumberFormat('en-AU', {
-    style: 'currency', currency: 'AUD', maximumFractionDigits: 0,
-  }).format(Math.abs(n));
-};
-
-const fmtCompact = (n: number): string => {
-  const abs = Math.abs(n);
-  if (abs >= 1000) return `$${(abs / 1000).toFixed(abs % 1000 === 0 ? 0 : 1)}k`;
-  return fmt(n);
-};
 
 interface Props {
   scenario: Scenario;
@@ -120,7 +107,10 @@ export default function PropertyScenario({
           <Row label="Business bank at 30 June" value={fmt(result.businessBankEnd)} />
           <Row label="Personal cash at 30 June" value={fmt(result.personalCashEnd)} />
           <Row label="Total cash at 30 June" value={fmt(result.totalCashAt30June)} divider />
-          <Row label="+ Cash growth Jul-settlement" value={`+${fmt(result.cashGrowthToSettle)}`} />
+          <Row
+            label="+ Net cash Jul-Oct (forecast)"
+            value={`${result.cashGrowthToSettle < 0 ? '' : '+'}${fmt(result.cashGrowthToSettle)}`}
+          />
           <Row label="Cash at settlement" value={fmt(result.totalCashAtSettlement)} emphasis />
           <Row label="- Min buffer to retain" value={`-${fmt(result.totalCashAtSettlement - result.cashAvailableForPurchase)}`} />
           <Row label="- Property cash needed" value={`-${fmt(result.cashNeeded)}`} />
