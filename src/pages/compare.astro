@@ -1,0 +1,11 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ErrorBoundary from '../components/ErrorBoundary';
+import Compare from '../components/Compare';
+---
+
+<Layout title="Offset vs Super" activeNav="compare">
+  <ErrorBoundary client:load fallback="Failed to load comparison">
+    <Compare client:load />
+  </ErrorBoundary>
+</Layout>

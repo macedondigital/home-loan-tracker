@@ -200,3 +200,25 @@ interest benefit as a larger deposit. Toggle persists to localStorage.
 Engine adds offsetBalance / offsetNetLoan / monthlyInterestSaved to the result;
 two tests cover the positive-surplus and deficit (nothing to offset) cases.
 33 vitest cases pass, build clean, render verified.
+
+## New tab: Offset vs Super (30-year comparison) + offset toggle moved (2026-06-09)
+
+Added a sixth tab "Offset vs Super" (/compare) comparing where a lump sum ends up
+further ahead over 1-30 years: in the home-loan offset (tax-free return = loan
+rate, accessible) vs super (higher growth, taxed in, locked). Pure projection in
+src/lib/projection.ts (tested): offset starts at the full lump, super net of
+contributions tax; each compounds at its rate; reports the crossover year and the
+year-30 gap. UI: adjustable inputs (lump, offset rate, super rate, contributions
+tax), an inline SVG line chart with a crossover marker, a verdict line, an
+at-a-glance table (yrs 5/10/20/30), and honest caveats (liquidity until
+preservation age; the concessional deduction not in the curves; return certainty;
+not advice). Defaults ($100k, 6%, 9%, 15% tax) put the crossover at year 6 with
+super ~$553k ahead by year 30. Persists to localStorage (hbo-compare-v1).
+
+Key framing surfaced to Will: with equal starts, super at 9% beats offset at 6%
+from the start; the interesting crossover only appears once super's entry tax (and
+liquidity) are accounted for.
+
+Also moved the Scenarios "surplus in offset" checkbox to below the scenario grid
+(was above it) per request. 39 vitest cases pass, build clean, both pages
+render-verified.

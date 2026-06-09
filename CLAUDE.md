@@ -34,7 +34,8 @@ src/
     PropertyScenario.tsx Scenarios: single scenario card
     RevenueForecast.tsx  Scenarios: Jul-Oct revenue forecast + outgoings
     ExpenseAccordion.tsx Scenarios: incurred + prepayable expense accordion
-    RangeInput.tsx       Scenarios: reusable number-box + slider
+    Compare.tsx          Offset vs Super tab (30-year projection + SVG chart)
+    RangeInput.tsx       Scenarios/Compare: reusable number-box + slider
     scenario-icons.tsx   Scenarios: inline SVG icon set
     ErrorBoundary.tsx    (61 lines)  React error boundary
   pages/
@@ -43,11 +44,12 @@ src/
     timeline.astro       Timeline (wraps Timeline)
     broker.astro         Broker Ready (wraps BrokerReady)
     scenarios.astro      Scenarios (wraps Scenarios)
+    compare.astro        Offset vs Super (wraps Compare)
     login.astro          Password gate
     404.astro            Not found
     api/                 20 route files (see table below)
   layouts/
-    Layout.astro         Shared nav, header, mobile bottom tabs (5 tabs)
+    Layout.astro         Shared nav, header, mobile bottom tabs (6 tabs)
   lib/
     db.ts                getDB() helper
     auth.ts              Cookie signing, validation, password check
@@ -57,7 +59,8 @@ src/
     stamp-duty.ts        Scenarios: VIC standard duty, no FHB concession (tested)
     loan.ts              Scenarios: monthly repayment (tested)
     scenario.ts          Scenarios: calculate() engine + defaults (tested)
-    format.ts            Scenarios: shared AUD currency formatting
+    projection.ts        Compare: offset vs super 30-year projection (tested)
+    format.ts            Scenarios/Compare: shared AUD currency formatting
   data/
     expenses.ts          Scenarios: incurred + prepayable expense data (from P&L)
   middleware.ts          Auth check on all routes

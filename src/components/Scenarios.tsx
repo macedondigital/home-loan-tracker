@@ -134,18 +134,7 @@ export default function Scenarios() {
 
       <RevenueForecast shared={shared} onChange={updateShared} />
 
-      <div style={s.scenariosMetaRow}>
-        <span style={s.scenariosMeta}>{scenarios.length} property scenarios</span>
-        <label style={s.offsetToggle}>
-          <input
-            type="checkbox"
-            checked={applyOffset}
-            onChange={(e) => setApplyOffset(e.target.checked)}
-            style={{ accentColor: '#166534', width: 15, height: 15 }}
-          />
-          Put each scenario&apos;s surplus in offset
-        </label>
-      </div>
+      <div style={s.scenariosMeta}>{scenarios.length} property scenarios</div>
 
       <ScenarioGrid
         scenarios={scenarios}
@@ -155,6 +144,16 @@ export default function Scenarios() {
         onNameChange={updateScenarioName}
         onDescChange={updateScenarioDesc}
       />
+
+      <label style={s.offsetToggle}>
+        <input
+          type="checkbox"
+          checked={applyOffset}
+          onChange={(e) => setApplyOffset(e.target.checked)}
+          style={{ accentColor: '#166534', width: 15, height: 15 }}
+        />
+        Put each scenario&apos;s surplus in offset
+      </label>
 
       <div style={s.footer}>
         <p>
@@ -206,16 +205,13 @@ const s: Record<string, React.CSSProperties> = {
     padding: '14px 16px', marginBottom: 16, background: '#f7fef9', border: '1px solid #bbf7d0',
     borderRadius: 12, fontSize: 13, color: '#57534e', lineHeight: 1.5,
   },
-  scenariosMetaRow: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    flexWrap: 'wrap', gap: 8, marginBottom: 12, marginTop: 8,
-  },
   scenariosMeta: {
     fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em',
-    color: '#78716c',
+    color: '#78716c', marginBottom: 12, marginTop: 8,
   },
   offsetToggle: {
-    display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#57534e', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#57534e',
+    cursor: 'pointer', marginTop: 16,
   },
   footer: { marginTop: 24, padding: '0 4px', fontSize: 11, color: '#78716c', lineHeight: 1.5 },
   footerStrong: { color: '#57534e', fontWeight: 600 },
