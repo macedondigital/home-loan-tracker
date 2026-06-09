@@ -1,0 +1,11 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ErrorBoundary from '../components/ErrorBoundary';
+import Scenarios from '../components/Scenarios';
+---
+
+<Layout title="Scenarios" activeNav="scenarios">
+  <ErrorBoundary client:load fallback="Failed to load scenarios">
+    <Scenarios client:load />
+  </ErrorBoundary>
+</Layout>

@@ -530,7 +530,7 @@ The "$12,000 per $100" approximation: at 9% assessment rate over 30 years, each 
 
 ---
 
-## Phase completion protocol
+## Phase completion protocol (V2)
 
 Every phase:
 1. Run `npm run build` (must pass clean)
@@ -542,3 +542,88 @@ Every phase:
 7. Print: "✅ Phase X complete. Next → Phase Y: [title]"
 
 Session log updates after Phases 4, 6, and 9.
+
+---
+
+# PLAN: Scenarios Tab (Home purchase + tax planner)
+
+Adds a fifth tab, "Scenarios", to the dashboard. A client-side scenario planner:
+three side-by-side property-price scenarios (default $650k / $700k / $750k) over
+a shared set of income, cash, and loan inputs. Each scenario shows a property
+breakdown, tax-planning sliders, tax breakdown, and a cash-flow result through
+to October settlement, with a surplus/deficit indicator.
+
+Ported from `designs/reference-prototype.html` to the project's actual stack
+(Astro 5 + React islands, inline styles, no Tailwind). Phase 1 is local state +
+localStorage. D1 persistence and later features are explicitly deferred.
+
+## Decisions (confirmed with Will)
+
+- Tab name: **Scenarios**
+- Styling: **inline React `style={{}}`** to match the codebase (the brief
+  mentioned Tailwind, but no component uses it; project CLAUDE.md mandates inline).
+- Persistence: **localStorage** in Phase 1 (survives reload; does not conflict
+  with the planned D1 work).
+
+## Financial rules (authoritative, from the brief)
+
+- Will is NOT a first home buyer. VIC FULL standard stamp duty applies, no FHB
+  concession. Reference: $650k -> $34,070, $700k -> $37,070, $750k -> $40,070.
+- FHG Single Parent Stream: 98% LVR, 2% deposit, $0 LMI. Federal deposit scheme,
+  not a stamp-duty benefit. Prior ownership OK.
+- Tax engine: FY25-26 resident brackets + 2% Medicare; super taxed 15%; Division
+  293 adds 15% on super when (taxable + super) > $250k; bucket company 25%
+  (ruled out, default $0).
+- Cash flow: super funded from personal cash first, top-up from business; prepay
+  paid by business; personal income tax assumed already covered by PAYG so not
+  double-counted at 30 June.
+
+## Architecture
+
+Pure logic in `src/lib/` (framework-free, unit-tested with vitest):
+- `tax.ts` - `calcPersonalTax`, `calcDiv293`, super/Div293 constants.
+- `stamp-duty.ts` - `calcStampDuty` (VIC standard, no concession).
+- `loan.ts` - `calcMonthlyRepayment`.
+- `scenario.ts` - `calculate(scenario, shared)` orchestrator + types + defaults.
+
+React components in `src/components/` (inline styles, `s` style-map convention
+from `BrokerReady.tsx`):
+- `Scenarios.tsx` - top-level island. Owns `shared` + `scenarios` state, derives
+  results, persists to localStorage, renders the rest.
+- `SharedInputs.tsx` - income/cash/loan grouped input cards.
+- `ScenarioGrid.tsx` - responsive 3-up grid of `PropertyScenario`.
+- `PropertyScenario.tsx` - one scenario card.
+- `RangeInput.tsx` - reusable number-box + slider pair with green-fill track.
+
+Wiring:
+- `src/pages/scenarios.astro` wraps `<Scenarios client:load />` in `ErrorBoundary`.
+- `navItems` in `Layout.astro` gains the Scenarios entry.
+
+## Phases
+
+### S1: Pure logic + tests
+- `tax.ts`, `stamp-duty.ts`, `loan.ts`, `scenario.ts` implemented test-first.
+- Acceptance: `npm run test` passes; stamp duty matches the three reference
+  values exactly; `calculate()` reproduces the prototype's default-scenario numbers.
+
+### S2: Components + wiring
+- All five components built; route + nav added.
+- Acceptance: `/scenarios` renders 3 scenarios; sliders + number inputs stay in
+  sync; surplus/deficit state, badges, and buffer-breach pill behave as prototype;
+  copy corrected (no false FHB-concession claim, no em dashes); mobile 375px has
+  no horizontal overflow.
+
+### S3: Persistence + polish + ship
+- localStorage load/save for `shared` + `scenarios`; "Reset all" restores defaults.
+- `.gitignore`: add `assets/`, `*.csv`, `*.xlsx`, `*.pdf`; create empty `assets/`
+  tree (`bank-statements/`, `quickbooks/`, `ato/super-carryforward-screenshots/`).
+- Acceptance: tweaks survive reload; Reset clears storage and restores defaults;
+  `npm run build` passes clean; deployed and verified at
+  `home-loan-tracker.pages.dev/scenarios`.
+
+## Out of scope (future phases, per brief)
+
+- Expense accordion from `src/data/expenses.ts`.
+- Jul-Oct income forecasting.
+- D1 persistence for scenarios.
+- Link monthly cash growth to Spending-tab actuals.

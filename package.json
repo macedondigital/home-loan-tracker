@@ -7,7 +7,8 @@
     "dev": "npx wrangler pages dev -- astro dev",
     "build": "astro build",
     "preview": "npx wrangler pages dev dist/",
-    "deploy": "npm run build && npx wrangler pages deploy dist/"
+    "deploy": "npm run build && npx wrangler pages deploy dist/",
+    "test": "vitest run"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.13",
@@ -18,10 +19,12 @@
     "wrangler": "^4.80.0"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.9",
     "@tailwindcss/vite": "^4.2.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "tailwindcss": "^4.2.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.8"
   }
 }
