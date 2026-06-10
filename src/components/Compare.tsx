@@ -3,7 +3,7 @@ import { project, projectSequencing, HORIZON_YEARS, type CompareInputs } from '.
 import { fmt, fmtCompact } from '../lib/format';
 import RangeInput from './RangeInput';
 
-const STORAGE_KEY = 'hbo-compare-v1';
+const STORAGE_KEY = 'hbo-compare-v2';
 
 type CompareState = CompareInputs & { lockYears: number; payoffYear: number };
 
@@ -11,7 +11,8 @@ const DEFAULTS: CompareState = {
   lumpSum: 100000,
   offsetRatePct: 6,
   superRatePct: 9,
-  superContribTaxPct: 15,
+  superContribTaxPct: 30,
+  personalTaxPct: 47,
   lockYears: 25,
   payoffYear: 8,
 };
@@ -54,6 +55,7 @@ export default function Compare() {
     loanRatePct: inputs.offsetRatePct,
     superRatePct: inputs.superRatePct,
     superContribTaxPct: inputs.superContribTaxPct,
+    personalTaxPct: inputs.personalTaxPct,
     payoffYear: inputs.payoffYear,
   });
 
@@ -77,8 +79,8 @@ export default function Compare() {
       <div style={s.card}>
         <div style={s.grid}>
           <RangeInput
-            label="Lump sum" value={inputs.lumpSum} min={0} max={300000} step={5000} prefix="$"
-            hint="Cash you could put in offset, or contribute to super."
+            label="Pre-tax lump sum" value={inputs.lumpSum} min={0} max={300000} step={5000} prefix="$"
+            hint="Trust profit you're deciding how to deploy (before any tax)."
             onChange={(v) => set('lumpSum', v)}
           />
           <RangeInput
@@ -92,9 +94,14 @@ export default function Compare() {
             onChange={(v) => set('superRatePct', v)}
           />
           <RangeInput
-            label="Super contributions tax" value={inputs.superContribTaxPct} min={0} max={30} step={1} suffix="%"
-            hint="15% concessional (30% with Div 293; 0% for after-tax contributions)."
+            label="Super entry tax (in fund)" value={inputs.superContribTaxPct} min={0} max={30} step={1} suffix="%"
+            hint="Concessional: 15% + 15% Div 293 = 30% for income over $250k."
             onChange={(v) => set('superContribTaxPct', v)}
+          />
+          <RangeInput
+            label="Your marginal tax rate" value={inputs.personalTaxPct} min={0} max={47} step={1} suffix="%"
+            hint="The cost of holding the cash in offset (you'd draw it personally). 47% at the top."
+            onChange={(v) => set('personalTaxPct', v)}
           />
           <RangeInput
             label="Years until super unlocks" value={inputs.lockYears} min={0} max={30} step={1} suffix="yrs"
@@ -103,8 +110,8 @@ export default function Compare() {
           />
         </div>
         <div style={s.startRow}>
-          <span><span style={{ ...s.dot, background: OFFSET_COLOR }} /> Into offset: <strong>{fmt(offsetStart)}</strong></span>
-          <span><span style={{ ...s.dot, background: SUPER_COLOR }} /> Into super: <strong>{fmt(superStart)}</strong>{inputs.superContribTaxPct > 0 ? ` (after ${inputs.superContribTaxPct}% tax)` : ''}</span>
+          <span><span style={{ ...s.dot, background: OFFSET_COLOR }} /> Into offset: <strong>{fmt(offsetStart)}</strong>{inputs.personalTaxPct > 0 ? ` (after ${inputs.personalTaxPct}% personal tax)` : ''}</span>
+          <span><span style={{ ...s.dot, background: SUPER_COLOR }} /> Into super: <strong>{fmt(superStart)}</strong>{inputs.superContribTaxPct > 0 ? ` (after ${inputs.superContribTaxPct}% in-fund tax)` : ''}</span>
         </div>
       </div>
 
@@ -227,10 +234,10 @@ export default function Compare() {
           then. Weigh the gap against when you actually need the money.
         </p>
         <p>
-          <strong style={s.footerStrong}>Super is likely even better than shown.</strong> A concessional
-          contribution also returns a tax deduction at your marginal rate (~47% this year), a one-off boost
-          to the super side that these curves do not include. The contributions-tax input only captures the
-          15% (or 30%) cost, not the deduction benefit.
+          <strong style={s.footerStrong}>The deduction is now credited.</strong> This treats the lump as
+          pre-tax: offset is taxed at your marginal rate (you would draw it personally), super only at the
+          in-fund rate. The gap between the two start amounts is the value of the concessional deduction,
+          which is why super starts ahead. Drop your marginal rate to see the picture for a lower earner.
         </p>
         <p>
           <strong style={s.footerStrong}>The rates are not equal in certainty.</strong> The offset return
@@ -238,8 +245,10 @@ export default function Compare() {
           returns swing year to year and sequencing matters. Treat the crossover as indicative, not a promise.
         </p>
         <p>
-          <strong style={s.footerStrong}>Not financial advice.</strong> Confirm the contributions-cap
-          headroom, Div 293, and timing with Sarah before acting.
+          <strong style={s.footerStrong}>Not financial advice.</strong> A large concessional contribution
+          uses your carry-forward room (~$152,610 this year, the oldest slice expiring 30 June 2026), and it
+          locks the cash and reduces what's available for the deposit. Confirm the cap, Div 293, and timing
+          with Sarah before acting.
         </p>
       </div>
     </div>

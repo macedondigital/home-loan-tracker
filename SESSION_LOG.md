@@ -240,3 +240,21 @@ generalised to two named series), and a milestone table. Also switched the
 liquidity input from "age" to "years until super unlocks" (default 25) per Will
 (age 39, hedging that preservation age rises). 43 vitest cases pass; both charts
 render-verified.
+
+## Offset vs Super: credit the concessional deduction (2026-06-10)
+
+Will confirmed (ATO screenshots) $152,610 concessional headroom via carry-forward.
+The Compare tab previously taxed super entry at 15% but ignored the ~47% deduction,
+understating concessional super. Reframed to a pre-tax comparison: the lump is
+pre-tax; offset is taxed at the marginal rate (you draw it personally to hold
+cash), super only at the in-fund rate (default 30% = 15% + Div 293). This credits
+the deduction implicitly. Added a "marginal tax rate" input (default 47%), bumped
+super entry tax default 15->30, relabelled the lump "pre-tax", and bumped the
+storage key to v2 (model semantics changed).
+
+Effect at defaults ($100k pre-tax, 6%/9%, 30% in-fund, 47% marginal): offset
+starts $53,000, super $70,000 - concessional super is ahead from year 0 in both
+the passive and sequencing models (was "offset leads early, crossover year 6").
+Passive year-30 gap ~$624k; sequencing ~$366k. Offset only wins now if the
+marginal rate is low (deduction worth little). Engine + tests updated (41 pass).
+This closes the biggest soft spot flagged in FINANCIAL-MODEL-REVIEW.md.

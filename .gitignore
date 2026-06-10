@@ -10,3 +10,8 @@ assets/
 *.csv
 *.xlsx
 *.pdf
+*.jpg
+*.jpeg
+*.png
+*.heic
+*.webp

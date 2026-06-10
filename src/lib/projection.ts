@@ -6,10 +6,11 @@
 export const HORIZON_YEARS = 30;
 
 export interface CompareInputs {
-  lumpSum: number;
+  lumpSum: number; // pre-tax amount being deployed (e.g. trust profit)
   offsetRatePct: number; // home-loan / offset rate, e.g. 6
   superRatePct: number; // long-run super growth, e.g. 9
-  superContribTaxPct: number; // contributions tax on the way into super, e.g. 15
+  superContribTaxPct: number; // in-fund tax on a concessional contribution, e.g. 30 (15% + 15% Div 293)
+  personalTaxPct: number; // marginal rate paid to hold the cash in offset, e.g. 47
 }
 
 export interface CompareYear {
@@ -36,10 +37,11 @@ export interface CompareResult {
 // repayment plan is identical between strategies, so the loan balance cancels.
 
 export interface SequencingInputs {
-  lumpSum: number;
+  lumpSum: number; // pre-tax amount being deployed
   loanRatePct: number; // the home-loan rate the "home first" path earns
   superRatePct: number;
-  superContribTaxPct: number;
+  superContribTaxPct: number; // in-fund tax on a concessional contribution (15% + Div 293)
+  personalTaxPct: number; // marginal rate paid to hold cash for loan repayment
   payoffYear: number; // T: when the loan is cleared and "home first" switches to super
 }
 
@@ -57,7 +59,10 @@ export interface SequencingResult {
 }
 
 export function projectSequencing(inputs: SequencingInputs): SequencingResult {
+  // Concessional super pays only the in-fund tax; loan repayment is made from
+  // after-personal-tax cash, so "home first" starts net of the marginal rate.
   const superNowStart = inputs.lumpSum * (1 - inputs.superContribTaxPct / 100);
+  const homeFirstStart = inputs.lumpSum * (1 - inputs.personalTaxPct / 100);
   const loanGrowth = 1 + inputs.loanRatePct / 100;
   const superGrowth = 1 + inputs.superRatePct / 100;
   const t = Math.min(Math.max(inputs.payoffYear, 0), HORIZON_YEARS);
@@ -70,8 +75,8 @@ export function projectSequencing(inputs: SequencingInputs): SequencingResult {
     // Home first: earns the loan rate until payoff, then compounds at the super
     // rate (redirected as an after-tax contribution, so no further entry tax).
     const homeFirst = year <= t
-      ? inputs.lumpSum * Math.pow(loanGrowth, year)
-      : inputs.lumpSum * Math.pow(loanGrowth, t) * Math.pow(superGrowth, year - t);
+      ? homeFirstStart * Math.pow(loanGrowth, year)
+      : homeFirstStart * Math.pow(loanGrowth, t) * Math.pow(superGrowth, year - t);
     series.push({ year, superNow, homeFirst, diff: superNow - homeFirst });
     if (crossoverYear === null && superNow >= homeFirst) crossoverYear = year;
   }
@@ -80,7 +85,10 @@ export function projectSequencing(inputs: SequencingInputs): SequencingResult {
 }
 
 export function project(inputs: CompareInputs): CompareResult {
-  const offsetStart = inputs.lumpSum;
+  // Pre-tax comparison: to hold the lump in offset you must draw it personally
+  // and pay your marginal rate; a concessional super contribution instead pays
+  // only the in-fund rate (15% + Div 293), which is how the deduction is credited.
+  const offsetStart = inputs.lumpSum * (1 - inputs.personalTaxPct / 100);
   const superStart = inputs.lumpSum * (1 - inputs.superContribTaxPct / 100);
   const offsetGrowth = 1 + inputs.offsetRatePct / 100;
   const superGrowth = 1 + inputs.superRatePct / 100;

@@ -1,55 +1,44 @@
 import { describe, it, expect } from 'vitest';
 import { project, projectSequencing, HORIZON_YEARS } from './projection';
 
+// Will's defaults: a concessional contribution pays 15% + 15% Div 293 = 30% in
+// the fund, while holding the cash in offset costs his 47% marginal rate.
 const DEFAULTS = {
   lumpSum: 100000,
   offsetRatePct: 6,
   superRatePct: 9,
-  superContribTaxPct: 15,
+  superContribTaxPct: 30,
+  personalTaxPct: 47,
 };
 
-describe('project (offset vs super)', () => {
-  it('starts offset at the full lump and super net of contributions tax', () => {
+describe('project (offset vs super, pre-tax comparison)', () => {
+  it('taxes offset at the marginal rate and super at the in-fund rate', () => {
     const r = project(DEFAULTS);
-    expect(r.offsetStart).toBeCloseTo(100000, 6);
-    expect(r.superStart).toBeCloseTo(85000, 6); // 100000 * (1 - 0.15)
-    expect(r.series[0].offset).toBeCloseTo(100000, 6);
-    expect(r.series[0].super).toBeCloseTo(85000, 6);
-    expect(r.series[0].diff).toBeCloseTo(-15000, 6);
+    expect(r.offsetStart).toBeCloseTo(53000, 6); // 100000 * (1 - 0.47)
+    expect(r.superStart).toBeCloseTo(70000, 6); // 100000 * (1 - 0.30)
+    expect(r.series[0].diff).toBeCloseTo(17000, 6); // super starts ahead once the deduction is credited
   });
 
   it('projects each year by its growth rate', () => {
     const r = project(DEFAULTS);
-    expect(r.series[6].offset).toBeCloseTo(100000 * Math.pow(1.06, 6), 4);
-    expect(r.series[6].super).toBeCloseTo(85000 * Math.pow(1.09, 6), 4);
-    expect(r.series.length).toBe(HORIZON_YEARS + 1); // years 0..30
+    expect(r.series[6].offset).toBeCloseTo(53000 * Math.pow(1.06, 6), 4);
+    expect(r.series[6].super).toBeCloseTo(70000 * Math.pow(1.09, 6), 4);
+    expect(r.series.length).toBe(HORIZON_YEARS + 1);
   });
 
-  it('finds super overtaking offset at year 6 with the default 15% entry tax', () => {
-    // offset 100k @6% vs super 85k @9%: super passes offset between year 5 and 6.
+  it('has concessional super ahead from the start for a high earner', () => {
     const r = project(DEFAULTS);
-    expect(r.series[5].super).toBeLessThan(r.series[5].offset);
-    expect(r.series[6].super).toBeGreaterThan(r.series[6].offset);
-    expect(r.crossoverYear).toBe(6);
+    expect(r.series[0].super).toBeGreaterThan(r.series[0].offset);
+    expect(r.crossoverYear).toBe(0);
+    expect(r.finalDiff).toBeGreaterThan(0);
   });
 
-  it('has super ahead from the start when there is no entry tax', () => {
-    const r = project({ ...DEFAULTS, superContribTaxPct: 0 });
-    expect(r.superStart).toBeCloseTo(100000, 6);
-    expect(r.crossoverYear).toBe(0); // equal start, higher rate -> ahead immediately
-  });
-
-  it('returns null crossover when super never catches offset', () => {
-    // Super grows slower and starts lower: never overtakes.
-    const r = project({ ...DEFAULTS, superRatePct: 5, superContribTaxPct: 15 });
+  it('lets offset win when the personal rate is low and super is taxed/grows worse', () => {
+    // Low marginal rate (offset keeps 90k) vs heavy super entry (70k) at a lower rate.
+    const r = project({ ...DEFAULTS, personalTaxPct: 10, superRatePct: 5 });
+    expect(r.offsetStart).toBeCloseTo(90000, 6);
     expect(r.crossoverYear).toBeNull();
     expect(r.finalDiff).toBeLessThan(0);
-  });
-
-  it('reports the horizon gap', () => {
-    const r = project(DEFAULTS);
-    expect(r.finalDiff).toBeCloseTo(r.series[HORIZON_YEARS].super - r.series[HORIZON_YEARS].offset, 6);
-    expect(r.finalDiff).toBeGreaterThan(0); // super well ahead by year 30
   });
 });
 
@@ -57,35 +46,34 @@ const SEQ_DEFAULTS = {
   lumpSum: 100000,
   loanRatePct: 6,
   superRatePct: 9,
-  superContribTaxPct: 15,
+  superContribTaxPct: 30,
+  personalTaxPct: 47,
   payoffYear: 8,
 };
 
-describe('projectSequencing (super now vs home first)', () => {
-  it('starts super-now net of tax and home-first at the full lump', () => {
+describe('projectSequencing (super now vs home first, pre-tax)', () => {
+  it('starts super-now at the in-fund net and home-first at the after-personal-tax net', () => {
     const r = projectSequencing(SEQ_DEFAULTS);
-    expect(r.series[0].superNow).toBeCloseTo(85000, 6);
-    expect(r.series[0].homeFirst).toBeCloseTo(100000, 6);
+    expect(r.series[0].superNow).toBeCloseTo(70000, 6); // 100000 * (1 - 0.30)
+    expect(r.series[0].homeFirst).toBeCloseTo(53000, 6); // 100000 * (1 - 0.47)
   });
 
   it('grows home-first at the loan rate until payoff, then at the super rate', () => {
     const r = projectSequencing(SEQ_DEFAULTS);
-    // Year 8 (payoff): still loan-rate growth.
-    expect(r.series[8].homeFirst).toBeCloseTo(100000 * Math.pow(1.06, 8), 4);
-    // Year 9: one year of super growth on top of the year-8 value.
-    expect(r.series[9].homeFirst).toBeCloseTo(100000 * Math.pow(1.06, 8) * 1.09, 4);
+    expect(r.series[8].homeFirst).toBeCloseTo(53000 * Math.pow(1.06, 8), 4);
+    expect(r.series[9].homeFirst).toBeCloseTo(53000 * Math.pow(1.06, 8) * 1.09, 4);
   });
 
-  it('has super-now overtake home-first around year 6 with the 15% entry tax', () => {
+  it('has concessional super-now ahead from the start for a high earner', () => {
     const r = projectSequencing(SEQ_DEFAULTS);
-    expect(r.series[5].superNow).toBeLessThan(r.series[5].homeFirst);
-    expect(r.series[6].superNow).toBeGreaterThan(r.series[6].homeFirst);
-    expect(r.crossoverYear).toBe(6);
+    expect(r.crossoverYear).toBe(0);
+    expect(r.finalDiff).toBeGreaterThan(0);
   });
 
-  it('flips to home-first winning when the entry tax is 30% (Div 293)', () => {
-    const r = projectSequencing({ ...SEQ_DEFAULTS, superContribTaxPct: 30 });
-    // 70k start in super never catches the 100k home-first path by year 30.
+  it('flips to home-first when the marginal rate is low (deduction worth little)', () => {
+    // Low marginal rate -> home-first keeps 90k vs super-now 70k; home-first stays ahead.
+    const r = projectSequencing({ ...SEQ_DEFAULTS, personalTaxPct: 10 });
+    expect(r.series[0].homeFirst).toBeCloseTo(90000, 6);
     expect(r.crossoverYear).toBeNull();
     expect(r.finalDiff).toBeLessThan(0);
   });
