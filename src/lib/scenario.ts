@@ -175,9 +175,9 @@ export function calculate(s: Scenario, shared: SharedInputs): ScenarioResult {
 }
 
 export const DEFAULT_SHARED: SharedInputs = {
-  trustProfit: 320000,
+  trustProfit: 307534,
   personalCash: 10000,
-  businessBank: 140000,
+  businessBank: 137000,
   minBuffer: 30000,
   revenueJul: 25000,
   revenueAug: 25000,

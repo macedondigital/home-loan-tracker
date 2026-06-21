@@ -13,30 +13,30 @@ describe('calculate (default Target $750k scenario, default shared inputs)', () 
   });
 
   it('computes the tax breakdown', () => {
-    // adjustedProfit 297500 - super 80000 = taxable 217500
-    expect(r.personalTaxable).toBeCloseTo(217500, 6);
-    expect(r.personalTotal).toBeCloseTo(68363, 6); // income tax 64013 + medicare 4350
+    // adjustedProfit 285034 - super 80000 = taxable 205034
+    expect(r.personalTaxable).toBeCloseTo(205034, 6);
+    expect(r.personalTotal).toBeCloseTo(62503.98, 6); // income tax 58403.30 + medicare 4100.68
     expect(r.superTax).toBeCloseTo(12000, 6); // 80000 * 15%
-    expect(r.div293).toBeCloseTo(7125, 6); // (297500-250000) * 15%
-    expect(r.totalTax).toBeCloseTo(87488, 6);
-    expect(r.taxSaved).toBeCloseTo(29050, 6); // baseline 116538 - 87488
+    expect(r.div293).toBeCloseTo(5255.1, 6); // (285034-250000) * 15%
+    expect(r.totalTax).toBeCloseTo(79759.08, 6);
+    expect(r.taxSaved).toBeCloseTo(30919.9, 6); // baseline 110678.98 - 79759.08
   });
 
   it('computes the cash flow to settlement', () => {
-    expect(r.businessBankEnd).toBeCloseTo(47500, 6); // 140000 - 22500 prepay - 70000 super top-up
+    expect(r.businessBankEnd).toBeCloseTo(44500, 6); // 137000 - 22500 prepay - 70000 super top-up
     expect(r.personalCashEnd).toBeCloseTo(0, 6); // 10000 - 10000 to super
-    expect(r.totalCashAt30June).toBeCloseTo(47500, 6);
+    expect(r.totalCashAt30June).toBeCloseTo(44500, 6);
     // Revenue 25000 x4 = 100000, less outgoings 13000 x4 = 52000 -> net 48000.
     expect(r.totalRevenueForecast).toBeCloseTo(100000, 6);
     expect(r.totalOutgoingsForecast).toBeCloseTo(52000, 6);
     expect(r.cashGrowthToSettle).toBeCloseTo(48000, 6);
-    expect(r.totalCashAtSettlement).toBeCloseTo(95500, 6); // 47500 + 48000
-    expect(r.cashAvailableForPurchase).toBeCloseTo(65500, 6); // less 30000 buffer
-    expect(r.surplus).toBeCloseTo(3430, 6); // 65500 - 62070
+    expect(r.totalCashAtSettlement).toBeCloseTo(92500, 6); // 44500 + 48000
+    expect(r.cashAvailableForPurchase).toBeCloseTo(62500, 6); // less 30000 buffer
+    expect(r.surplus).toBeCloseTo(430, 6); // 62500 - 62070
   });
 
   it('computes status flags', () => {
-    expect(r.bufferOk30June).toBe(true); // 47500 >= 30000
+    expect(r.bufferOk30June).toBe(true); // 44500 >= 30000
     expect(r.canAffordPurchase).toBe(true); // surplus with the revenue forecast
     expect(r.superExceeded).toBe(false); // 80000 < 152610 cap
   });
@@ -86,7 +86,7 @@ describe('calculate edge cases', () => {
   });
 
   it('parks positive surplus in offset and computes the monthly interest saved', () => {
-    // Default Target has a +$3,430 surplus at 6.5%.
+    // Default Target has a +$430 surplus at 6.5%.
     const r = calculate(DEFAULT_SCENARIOS[2], DEFAULT_SHARED);
     expect(r.surplus).toBeGreaterThan(0);
     expect(r.offsetBalance).toBeCloseTo(r.surplus, 6);
