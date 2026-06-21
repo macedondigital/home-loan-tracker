@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Plan D . Home purchase + tax planner</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #FAFAF7;
+    --card: #ffffff;
+    --border: #e8e6df;
+    --border-strong: #d6d3d1;
+    --text: #1c1917;
+    --text-muted: #57534e;
+    --text-subtle: #78716c;
+    --text-faint: #a8a29e;
+    --green: #166534;
+    --green-light: #dcfce7;
+    --green-tint: #f7fef9;
+    --green-mid: #86efac;
+    --red: #dc2626;
+    --red-light: #fef2f2;
+    --red-mid: #fecaca;
+    --amber: #b45309;
+    --amber-light: #fef3c7;
+    --amber-mid: #fde68a;
+    --teal: #0891b2;
+    --purple: #7c3aed;
+    --orange: #d97706;
+    --blue: #2563eb;
+    --blue-light: #dbeafe;
+    --stone-50: #fafaf9;
+    --stone-100: #f5f5f4;
+    --stone-200: #e7e5e4;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.4;
+  }
+
+  .heading-serif { font-family: Georgia, 'Times New Roman', serif; }
+
+  .container { max-width: 1500px; margin: 0 auto; padding: 16px; }
+  @media (min-width: 768px) { .container { padding: 24px; } }
+
+  header {
+    margin-bottom: 24px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .eyebrow {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 500; color: var(--text-subtle);
+    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px;
+  }
+  .eyebrow .accent { color: var(--green); }
+
+  h1 { font-size: 24px; color: var(--text); line-height: 1.2; font-weight: 600; }
+  @media (min-width: 768px) { h1 { font-size: 30px; } }
+
+  .subtitle { color: var(--text-muted); margin-top: 4px; font-size: 14px; max-width: 720px; }
+
+  .reset-btn {
+    font-size: 12px; color: var(--text-subtle);
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 12px; border-radius: 8px;
+    border: 1px solid var(--border); background: white;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .reset-btn:hover { color: var(--text); border-color: var(--border-strong); }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; }
+
+  .context-card {
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    background: var(--green-tint);
+    border-color: #bbf7d0;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .context-card strong { color: var(--green); font-weight: 600; }
+
+  .shared-inputs {
+    padding: 16px; margin-bottom: 16px;
+    display: grid; grid-template-columns: 1fr; gap: 20px;
+  }
+  @media (min-width: 640px) { .shared-inputs.cols-2 { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 768px) { .shared-inputs.cols-3 { grid-template-columns: 1fr 1fr 1fr; } }
+  @media (min-width: 1024px) { .shared-inputs.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; } }
+  @media (min-width: 1024px) { .shared-inputs.cols-5 { grid-template-columns: repeat(5, 1fr); } }
+
+  .card-heading {
+    padding: 12px 16px 0 16px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-subtle);
+    margin-bottom: -8px;
+  }
+
+  .input-group label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 500; color: var(--text-muted);
+  }
+
+  .input-row {
+    display: flex; align-items: baseline;
+    justify-content: space-between; margin-bottom: 8px;
+  }
+
+  .number-wrap { display: flex; align-items: baseline; gap: 2px; }
+
+  .number-wrap .prefix {
+    color: var(--text-faint); font-size: 13px;
+    font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+  }
+
+  .number-wrap .suffix {
+    color: var(--text-faint); font-size: 13px;
+    margin-left: 4px;
+  }
+
+  .num-input {
+    width: 100px; text-align: right;
+    font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+    font-size: 15px; font-weight: 600;
+    background: transparent; border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--text); outline: none;
+    transition: border-color 0.15s; padding: 2px 0;
+  }
+  .num-input:focus { border-color: var(--text-muted); }
+  .num-input.exceeded { border-color: var(--red-mid); color: var(--red); }
+  .num-input-sm { width: 80px; font-size: 13px; }
+
+  .range-input {
+    width: 100%; height: 6px; border-radius: 3px;
+    appearance: none; cursor: pointer; outline: none;
+    background: var(--stone-100);
+  }
+  .range-input::-webkit-slider-thumb {
+    appearance: none; width: 16px; height: 16px; border-radius: 50%;
+    background: white; border: 2px solid var(--green);
+    cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    transition: transform 0.15s;
+  }
+  .range-input::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  .range-input::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: white; border: 2px solid var(--green); cursor: pointer;
+  }
+  .range-sm { height: 4px; }
+  .range-sm::-webkit-slider-thumb { width: 12px; height: 12px; }
+
+  .hint { font-size: 11px; color: var(--text-faint); margin-top: 4px; line-height: 1.4; }
+
+  .scenarios-meta {
+    display: flex; align-items: center;
+    justify-content: space-between; margin-bottom: 12px;
+  }
+
+  .scenarios-count {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-subtle);
+  }
+
+  .scenarios-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 768px) { .scenarios-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1200px) { .scenarios-grid { grid-template-columns: repeat(3, 1fr); } }
+
+  .scenario {
+    display: flex; flex-direction: column; overflow: hidden;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .scenario.surplus {
+    border-color: var(--green-mid); border-width: 1.5px;
+  }
+  .scenario.deficit {
+    border-color: var(--red-mid); border-width: 1.5px;
+    background: var(--red-light);
+  }
+
+  .scenario-header { padding: 14px 16px; border-bottom: 1px solid var(--stone-100); }
+
+  .scenario-name-row {
+    display: flex; align-items: flex-start;
+    justify-content: space-between; gap: 8px; margin-bottom: 2px;
+  }
+
+  .scenario-name {
+    font-family: Georgia, serif; font-size: 17px; font-weight: 600;
+    color: var(--text); background: transparent; border: none;
+    width: 100%; outline: none; padding: 2px 4px;
+    margin-left: -4px; border-radius: 4px;
+  }
+  .scenario-name:focus { background: var(--stone-50); }
+
+  .scenario-desc {
+    font-size: 11px; color: var(--text-subtle);
+    background: transparent; border: none;
+    width: 100%; outline: none; padding: 2px 4px;
+    margin-left: -4px; border-radius: 4px;
+  }
+  .scenario-desc:focus { background: var(--stone-50); }
+
+  .badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; min-height: 18px; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 999px;
+    font-size: 10px; font-weight: 600;
+  }
+  .badge.green { background: var(--green-light); color: var(--green); }
+  .badge.red { background: var(--red-light); color: var(--red); }
+  .badge.amber { background: var(--amber-light); color: var(--amber); }
+  .badge.blue { background: var(--blue-light); color: var(--blue); }
+  .badge[hidden] { display: none; }
+
+  .scenario-section { padding: 12px 16px; border-bottom: 1px solid var(--stone-100); }
+
+  .section-label {
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-subtle); margin-bottom: 8px;
+  }
+
+  .property-section {
+    background: linear-gradient(to bottom, #f8fafc 0%, white 100%);
+  }
+
+  .property-target-row {
+    display: flex; align-items: baseline;
+    justify-content: space-between; margin-bottom: 8px;
+  }
+
+  .property-target-label { font-size: 13px; font-weight: 600; color: var(--text); }
+
+  .breakdown { display: flex; flex-direction: column; gap: 4px; }
+
+  .breakdown-row { display: flex; justify-content: space-between; font-size: 12px; }
+  .breakdown-row .label { color: var(--text-muted); }
+  .breakdown-row .value { font-family: 'SF Mono', 'Menlo', monospace; color: var(--text); }
+  .breakdown-row.warning .label,
+  .breakdown-row.warning .value { color: var(--amber); }
+  .breakdown-row.divider { border-top: 1px solid var(--stone-100); padding-top: 4px; margin-top: 2px; }
+  .breakdown-row.emphasis .label,
+  .breakdown-row.emphasis .value { font-weight: 600; color: var(--text); }
+  .breakdown-row[hidden] { display: none; }
+
+  .headline-stat {
+    padding: 14px 16px;
+    background: rgba(245, 245, 244, 0.5);
+    border-bottom: 1px solid var(--stone-100);
+  }
+
+  .headline-label {
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-subtle); margin-bottom: 4px;
+  }
+
+  .headline-value {
+    font-family: Georgia, serif; font-size: 24px;
+    font-weight: 600; color: var(--text); line-height: 1;
+  }
+
+  .headline-sub {
+    font-size: 12px; color: var(--text-muted); margin-top: 4px;
+  }
+
+  .inputs-stack { display: flex; flex-direction: column; gap: 12px; }
+
+  .input-mini { display: flex; flex-direction: column; }
+
+  .input-mini-row {
+    display: flex; align-items: baseline;
+    justify-content: space-between; gap: 8px; margin-bottom: 6px;
+  }
+
+  .input-mini-label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 500; color: var(--text-muted);
+  }
+
+  .status-pill {
+    margin-top: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .status-pill.pass {
+    background: var(--green-light);
+    color: var(--green);
+  }
+  .status-pill.fail {
+    background: var(--red-light);
+    color: var(--red);
+  }
+
+  .cash-flow-result {
+    padding: 14px 16px;
+    margin-top: auto;
+  }
+
+  .cash-flow-headline {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 6px;
+  }
+
+  .cash-flow-headline .label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-subtle);
+  }
+
+  .cash-flow-headline .value {
+    font-family: Georgia, serif;
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .cash-flow-headline .value.positive { color: var(--green); }
+  .cash-flow-headline .value.negative { color: var(--red); }
+
+  .footer-notes {
+    margin-top: 24px; padding: 0 4px;
+    font-size: 11px; color: var(--text-subtle); line-height: 1.5;
+  }
+  .footer-notes p { margin-top: 6px; }
+  .footer-notes strong { color: var(--text-muted); font-weight: 600; }
+
+  .icon { display: inline-block; vertical-align: middle; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div>
+      <div class="eyebrow">
+        <span class="accent">Plan D</span>
+        <span>·</span>
+        <span>Home purchase + tax planner</span>
+      </div>
+      <h1 class="heading-serif">Three property scenarios for October settlement</h1>
+      <p class="subtitle">Updated with actual P&amp;L through 9 June ($308k YTD net profit). Adjust property target on each scenario to see how the cash-needed and surplus changes. VIC FHB tapered stamp duty concession baked in.</p>
+    </div>
+    <button class="reset-btn" id="resetBtn">
+      <svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+      Reset all
+    </button>
+  </header>
+
+  <div class="card context-card">
+    <strong>Stamp duty:</strong> You're not a first home buyer, so VIC FHB exemptions/concessions don't apply. Full standard duty applies at all price points ($34k at $650k, $40k at $750k). The Family Home Guarantee Single Parent Stream gives you 2% deposit with no LMI but it's a federal deposit scheme, not a stamp duty benefit. Going cheaper still helps via smaller loan and lower repayments, but the stamp duty saving is modest (~$6k between $650k and $750k).
+  </div>
+
+  <div class="card-heading">Income &amp; Cash Position</div>
+  <div class="card shared-inputs cols-3">
+    <div class="input-group">
+      <div class="input-row">
+        <label>
+          <svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+          Trust net profit (FY25-26)
+        </label>
+        <div class="number-wrap">
+          <span class="prefix">$</span>
+          <input type="number" class="num-input" id="trustProfit" value="320000" />
+        </div>
+      </div>
+      <input type="range" class="range-input" id="trustProfitRange" min="100000" max="500000" step="5000" value="320000" />
+      <p class="hint">$308k YTD accrual through 9 June. Updated estimate accounts for late-June EOFY spending.</p>
+    </div>
+    <div class="input-group">
+      <div class="input-row">
+        <label>
+          <svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>
+          Personal cash on hand
+        </label>
+        <div class="number-wrap">
+          <span class="prefix">$</span>
+          <input type="number" class="num-input" id="personalCash" value="10000" />
+        </div>
+      </div>
+      <input type="range" class="range-input" id="personalCashRange" min="0" max="200000" step="5000" value="10000" />
+      <p class="hint">Funds super contribution first. Top up from business if needed.</p>
+    </div>
+    <div class="input-group">
+      <div class="input-row">
+        <label>
+          <svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/></svg>
+          Business bank (30 June projected)
+        </label>
+        <div class="number-wrap">
+          <span class="prefix">$</span>
+          <input type="number" class="num-input" id="businessBank" value="140000" />
+        </div>
+      </div>
+      <input type="range" class="range-input" id="businessBankRange" min="0" max="300000" step="5000" value="140000" />
+      <p class="hint">9 June actual: $120k. Projection adds expected June revenue net of spending.</p>
+    </div>
+  </div>
+
+  <div class="card-heading">Cash Growth To Settlement</div>
+  <div class="card shared-inputs cols-3">
+    <div class="input-group">
+      <div class="input-row">
+        <label>
+          <svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          Net cash savings per month (post 30 June)
+        </label>
+        <div class="number-wrap">
+          <span class="prefix">$</span>
+          <input type="number" class="num-input" id="monthlyCashGrowth" value="10000" />
+        </div>
+      </div>
+      <input type="range" class="range-input" id="monthlyCashGrowthRange" min="0" max="30000" step="1000" value="10000" />
+      <p class="hint">Avg monthly cash retention after personal tax, drawings, business costs.</p>
+    </div>
+    <div class="input-group">
+      <div class="input-row">
+        <label>
+          <svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          Months to settlement
+        </label>
+        <div class="number-wrap">
+          <input type="number" class="num-input" id="monthsToSettle" value="4" />
+          <span class="suffix">months</span>
+        </div>
+      </div>
+      <input type="range" class="range-input" id="monthsToSettleRange" min="1" max="8" step="1" value="4" />
+      <p class="hint">Jul-Oct = 4 months. Push higher if settlement slips.</p>
+    </div>
+    <div class="input-group">
+      <div class="input-row">
+        <label>
+          <svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Min business buffer
+        </label>
+        <div class="number-wrap">
+          <span class="prefix">$</span>
+          <input type="number" class="num-input" id="minBuffer" value="30000" />
+        </div>
+      </div>
+      <input type="range" class="range-input" id="minBufferRange" min="0" max="100000" step="1000" value="30000" />
+      <p class="hint">Cash to keep in business bank as ongoing safety buffer.</p>
+    </div>
+  </div>
+
+  <div class="card-heading">Loan Settings</div>
+  <div class="card shared-inputs cols-3">
+    <div class="input-group">
+      <div class="input-row">
+        <label>Interest rate</label>
+        <div class="number-wrap">
+          <input type="number" class="num-input" id="interestRate" value="6.5" step="0.1" />
+          <span class="suffix">%</span>
+        </div>
+      </div>
+      <input type="range" class="range-input" id="interestRateRange" min="3" max="10" step="0.1" value="6.5" />
+      <p class="hint">ANZ owner-occupier variable, ~6.5% as of June 2026.</p>
+    </div>
+    <div class="input-group">
+      <div class="input-row">
+        <label>Loan term</label>
+        <div class="number-wrap">
+          <input type="number" class="num-input" id="loanYears" value="30" />
+          <span class="suffix">years</span>
+        </div>
+      </div>
+      <input type="range" class="range-input" id="loanYearsRange" min="15" max="30" step="1" value="30" />
+      <p class="hint">Standard term. Your aggressive paydown plan overrides this.</p>
+    </div>
+    <div class="input-group">
+      <div class="input-row">
+        <label>Other purchase costs</label>
+        <div class="number-wrap">
+          <span class="prefix">$</span>
+          <input type="number" class="num-input" id="otherCosts" value="7000" />
+        </div>
+      </div>
+      <input type="range" class="range-input" id="otherCostsRange" min="3000" max="15000" step="500" value="7000" />
+      <p class="hint">Conveyancing, inspections, title transfer, mortgage registration.</p>
+    </div>
+  </div>
+
+  <div class="scenarios-meta">
+    <div class="scenarios-count">3 property scenarios</div>
+  </div>
+
+  <div class="scenarios-grid" id="scenariosGrid"></div>
+
+  <div class="footer-notes">
+    <p><strong>FHG loan assumption:</strong> Family Home Guarantee Single Parent Stream allows 2% deposit with no LMI. Loan = 98% of property value. Previous property ownership does not disqualify (FHG is not a first home buyer scheme).</p>
+    <p><strong>Stamp duty:</strong> Calculated at standard VIC owner-occupier rates with no concession. First Home Buyer exemption/concession does not apply because of previous property ownership. PPR concession only applies to properties under $550k, so doesn't apply in your price range. Above $130k, duty is $2,870 + 6% of excess over $130k.</p>
+    <p><strong>Cash flow logic:</strong> Super funded from personal cash first, top-up from business. Prepay paid directly by business. Personal income tax assumed already covered by PAYG instalments paid throughout the year, so not double-counted against the 30 June cash position.</p>
+    <p><strong>Not financial advice.</strong> Confirm with Sarah before acting and verify Simon's serviceability treatment of super contributions.</p>
+  </div>
+</div>
+
+<script>
+// ===== Constants =====
+const SUPER_CARRY_FORWARD = 122610;
+const SUPER_CURRENT_YEAR = 30000;
+const SUPER_TOTAL_CAP = SUPER_CARRY_FORWARD + SUPER_CURRENT_YEAR;
+const D293_THRESHOLD = 250000;
+const LVR_FHG = 0.98;
+
+const DEFAULT_SCENARIOS = [
+  {
+    id: 1,
+    name: "Conservative ($650k)",
+    description: "Smaller loan, lower repayments.",
+    propertyTarget: 650000,
+    superContrib: 80000,
+    bucket: 0,
+    prepaid: 22500,
+  },
+  {
+    id: 2,
+    name: "Middle ($700k)",
+    description: "Balance between space and stretch.",
+    propertyTarget: 700000,
+    superContrib: 80000,
+    bucket: 0,
+    prepaid: 22500,
+  },
+  {
+    id: 3,
+    name: "Target ($750k)",
+    description: "Original plan. Higher debt load.",
+    propertyTarget: 750000,
+    superContrib: 80000,
+    bucket: 0,
+    prepaid: 22500,
+  },
+];
+
+// ===== Formatting =====
+const fmt = (n) => {
+  if (n === null || n === undefined || isNaN(n)) return "$0";
+  const sign = n < 0 ? "-" : "";
+  const abs = Math.abs(n);
+  return sign + new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 }).format(abs);
+};
+const fmtCompact = (n) => {
+  if (n === null || n === undefined || isNaN(n)) return "$0";
+  const sign = n < 0 ? "-" : "";
+  const abs = Math.abs(n);
+  if (abs >= 1000) return `${sign}$${(abs / 1000).toFixed(abs % 1000 === 0 ? 0 : 1)}k`;
+  return fmt(n);
+};
+
+// ===== Stamp duty (VIC - Will is NOT a first home buyer) =====
+// He's owned 3 previous houses, so no FHB exemption or concession applies.
+// FHG (Family Home Guarantee) is a federal deposit/LMI scheme, not stamp duty.
+// PPR (Principal Place of Residence) concession only applies up to $550k, so
+// at his target range of $650k+, no concession is available. Full duty applies.
+function calcStampDuty(propertyValue) {
+  let fullDuty;
+  if (propertyValue <= 25000) {
+    fullDuty = propertyValue * 0.014;
+  } else if (propertyValue <= 130000) {
+    fullDuty = 350 + (propertyValue - 25000) * 0.024;
+  } else if (propertyValue <= 960000) {
+    fullDuty = 2870 + (propertyValue - 130000) * 0.06;
+  } else {
+    fullDuty = 55670 + (propertyValue - 960000) * 0.055;
+  }
+  return { fullDuty, concessionPct: 0, payable: fullDuty };
+}
+
+// ===== Loan repayment =====
+function calcMonthlyRepayment(principal, ratePct, years) {
+  if (principal <= 0 || ratePct <= 0 || years <= 0) return 0;
+  const r = ratePct / 100 / 12;
+  const n = years * 12;
+  return principal * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+}
+
+// ===== Tax engine =====
+function calcPersonalTax(taxable) {
+  if (taxable <= 0) return { incomeTax: 0, medicare: 0, total: 0 };
+  let tax = 0;
+  if (taxable > 18200) tax += Math.min(taxable - 18200, 26800) * 0.16;
+  if (taxable > 45000) tax += Math.min(taxable - 45000, 90000) * 0.30;
+  if (taxable > 135000) tax += Math.min(taxable - 135000, 55000) * 0.37;
+  if (taxable > 190000) tax += (taxable - 190000) * 0.45;
+  return { incomeTax: tax, medicare: taxable * 0.02, total: tax + taxable * 0.02 };
+}
+
+function calcDiv293(taxable, superContrib) {
+  const combined = taxable + superContrib;
+  if (combined <= D293_THRESHOLD) return 0;
+  return Math.min(combined - D293_THRESHOLD, superContrib) * 0.15;
+}
+
+function calculate(s) {
+  // Property calculations
+  const loan = s.propertyTarget * LVR_FHG;
+  const deposit = s.propertyTarget * (1 - LVR_FHG);
+  const stampDutyInfo = calcStampDuty(s.propertyTarget);
+  const stampDuty = stampDutyInfo.payable;
+  const cashNeeded = deposit + stampDuty + state.otherCosts;
+  const monthlyRepayment = calcMonthlyRepayment(loan, state.interestRate, state.loanYears);
+
+  // Tax calculations
+  const adjustedProfit = Math.max(0, state.trustProfit - s.prepaid);
+  const personalDist = Math.max(0, adjustedProfit - s.bucket);
+  const personalTaxable = Math.max(0, personalDist - s.superContrib);
+  const personal = calcPersonalTax(personalTaxable);
+  const superTax = s.superContrib * 0.15;
+  const div293 = calcDiv293(personalTaxable, s.superContrib);
+  const bucketTax = s.bucket * 0.25;
+  const totalTax = personal.total + superTax + div293 + bucketTax;
+  const baseline = calcPersonalTax(state.trustProfit);
+  const taxSaved = baseline.total - totalTax;
+
+  // Cash flow at 30 June
+  const superDrawFromBusiness = Math.max(0, s.superContrib - state.personalCash);
+  const personalCashUsedForSuper = Math.min(s.superContrib, state.personalCash);
+  const businessBankEnd = state.businessBank - s.prepaid - superDrawFromBusiness;
+  const personalCashEnd = state.personalCash - personalCashUsedForSuper;
+  const totalCashAt30June = businessBankEnd + personalCashEnd;
+
+  // Cash at settlement
+  const cashGrowthToSettle = state.monthlyCashGrowth * state.monthsToSettle;
+  const totalCashAtSettlement = totalCashAt30June + cashGrowthToSettle;
+
+  // Required vs available (must also retain min buffer)
+  const cashAvailableForPurchase = totalCashAtSettlement - state.minBuffer;
+  const surplus = cashAvailableForPurchase - cashNeeded;
+
+  // Statuses
+  const bufferOk30June = businessBankEnd >= state.minBuffer;
+  const bufferAmount30June = businessBankEnd - state.minBuffer;
+  const canAffordPurchase = surplus >= 0;
+  const superExceeded = s.superContrib > SUPER_TOTAL_CAP;
+
+  return {
+    // Property
+    loan, deposit, stampDutyInfo, stampDuty, cashNeeded, monthlyRepayment,
+    // Tax
+    personalTaxable, personalDist,
+    personalIncomeTax: personal.incomeTax,
+    medicare: personal.medicare,
+    personalTotal: personal.total,
+    superTax, div293, bucketTax, totalTax,
+    taxSaved,
+    // Cash flow
+    superDrawFromBusiness, businessBankEnd, personalCashEnd,
+    totalCashAt30June, cashGrowthToSettle, totalCashAtSettlement,
+    cashAvailableForPurchase, surplus,
+    // Status
+    bufferOk30June, bufferAmount30June, canAffordPurchase, superExceeded,
+  };
+}
+
+// ===== State =====
+const state = {
+  trustProfit: 320000,
+  personalCash: 10000,
+  businessBank: 140000,
+  minBuffer: 30000,
+  monthlyCashGrowth: 10000,
+  monthsToSettle: 4,
+  interestRate: 6.5,
+  loanYears: 30,
+  otherCosts: 7000,
+  scenarios: JSON.parse(JSON.stringify(DEFAULT_SCENARIOS)),
+};
+
+const refs = new Map();
+
+// ===== Icons =====
+const ICONS = {
+  home: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 22V12h6v10"/></svg>',
+  piggy: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2h0V5z"/></svg>',
+  building: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/></svg>',
+  receipt: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 2v20l2-2 2 2 2-2 2 2 2-2 2 2 2-2 2 2V2l-2 2-2-2-2 2-2-2-2 2-2-2-2 2Z"/></svg>',
+  check: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>',
+  cross: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  alert: '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>',
+};
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function updateSliderTrack(rangeEl, value, min, max, color) {
+  const span = max - min;
+  const pct = span > 0 ? Math.min(100, Math.max(0, ((value - min) / span) * 100)) : 0;
+  rangeEl.style.background = `linear-gradient(to right, ${color} 0%, ${color} ${pct}%, var(--stone-100) ${pct}%, var(--stone-100) 100%)`;
+}
+
+function buildScenarioCard(s) {
+  const card = document.createElement('div');
+  card.className = 'card scenario';
+  card.dataset.id = s.id;
+
+  card.innerHTML = `
+    <div class="scenario-header">
+      <input type="text" class="scenario-name js-name" value="${escapeHtml(s.name)}" />
+      <input type="text" class="scenario-desc js-desc" value="${escapeHtml(s.description)}" />
+      <div class="badges">
+        <span class="badge green js-badge-affordable" hidden>${ICONS.check} Affordable</span>
+        <span class="badge red js-badge-deficit" hidden>${ICONS.cross} Cash shortfall</span>
+        <span class="badge amber js-badge-buffer" hidden>${ICONS.alert} Buffer breach at 30 June</span>
+      </div>
+    </div>
+
+    <div class="scenario-section property-section">
+      <div class="property-target-row">
+        <span class="property-target-label">${ICONS.home} Property target</span>
+        <div class="number-wrap">
+          <span class="prefix" style="font-size: 12px;">$</span>
+          <input type="number" class="num-input num-input-sm js-num-propertyTarget" data-max="1000000" value="${s.propertyTarget}" />
+        </div>
+      </div>
+      <input type="range" class="range-input range-sm js-range-propertyTarget" min="500000" max="1000000" step="5000" value="${s.propertyTarget}" />
+
+      <div class="breakdown" style="margin-top: 12px;">
+        <div class="breakdown-row"><span class="label">Loan (98% FHG)</span><span class="value js-loan">$0</span></div>
+        <div class="breakdown-row"><span class="label">Deposit (2%)</span><span class="value js-deposit">$0</span></div>
+        <div class="breakdown-row"><span class="label">Stamp duty <span class="js-duty-note" style="font-size: 10px; color: var(--text-faint);"></span></span><span class="value js-stampDuty">$0</span></div>
+        <div class="breakdown-row"><span class="label">Other costs</span><span class="value js-otherCosts">$0</span></div>
+        <div class="breakdown-row divider emphasis"><span class="label">Total cash needed</span><span class="value js-cashNeeded">$0</span></div>
+        <div class="breakdown-row"><span class="label">Monthly repayment</span><span class="value js-monthlyRepayment">$0</span></div>
+      </div>
+    </div>
+
+    <div class="scenario-section">
+      <div class="section-label">Tax planning</div>
+      <div class="inputs-stack">
+        ${buildInputHtml('superContrib', s.superContrib, SUPER_TOTAL_CAP, 'Super contribution', ICONS.piggy, `Cap ${fmtCompact(SUPER_TOTAL_CAP)} (carry-forward ${fmtCompact(SUPER_CARRY_FORWARD)})`)}
+        ${buildInputHtml('prepaid', s.prepaid, 50000, 'Prepaid expenses', ICONS.receipt, '~$22.5k confirmed legitimate')}
+        ${buildInputHtml('bucket', s.bucket, 200000, 'Bucket company', ICONS.building, 'Sarah advised against. Default $0.')}
+      </div>
+    </div>
+
+    <div class="scenario-section">
+      <div class="section-label">Tax breakdown</div>
+      <div class="breakdown">
+        <div class="breakdown-row"><span class="label">Personal taxable</span><span class="value js-personalTaxable">$0</span></div>
+        <div class="breakdown-row"><span class="label">Income tax + Medicare</span><span class="value js-personalTotal">$0</span></div>
+        <div class="breakdown-row js-bd-super-row" hidden><span class="label">Super 15%</span><span class="value js-bd-super">$0</span></div>
+        <div class="breakdown-row warning js-bd-d293-row" hidden><span class="label">Div 293</span><span class="value js-bd-d293">$0</span></div>
+        <div class="breakdown-row js-bd-bucket-row" hidden><span class="label">Bucket 25%</span><span class="value js-bd-bucket">$0</span></div>
+        <div class="breakdown-row divider emphasis"><span class="label">Total tax</span><span class="value js-totalTax">$0</span></div>
+        <div class="breakdown-row"><span class="label" style="color: var(--green);">Tax saved vs baseline</span><span class="value js-taxSaved" style="color: var(--green);">$0</span></div>
+      </div>
+    </div>
+
+    <div class="cash-flow-result">
+      <div class="section-label">Cash flow to settlement</div>
+      <div class="breakdown">
+        <div class="breakdown-row"><span class="label">Business bank at 30 June</span><span class="value js-businessBankEnd">$0</span></div>
+        <div class="breakdown-row"><span class="label">Personal cash at 30 June</span><span class="value js-personalCashEnd">$0</span></div>
+        <div class="breakdown-row divider"><span class="label">Total cash at 30 June</span><span class="value js-totalCash30June">$0</span></div>
+        <div class="breakdown-row"><span class="label">+ Cash growth Jul-settlement</span><span class="value js-cashGrowth">$0</span></div>
+        <div class="breakdown-row emphasis"><span class="label">Cash at settlement</span><span class="value js-totalCashSettle">$0</span></div>
+        <div class="breakdown-row"><span class="label">- Min buffer to retain</span><span class="value js-bufferRetain">$0</span></div>
+        <div class="breakdown-row"><span class="label">- Property cash needed</span><span class="value js-propertyCashNeeded">$0</span></div>
+      </div>
+      <div class="cash-flow-headline">
+        <span class="label">Surplus / Deficit</span>
+        <span class="value js-surplus">$0</span>
+      </div>
+      <div class="status-pill js-buffer-30june-status" hidden>
+        <span class="js-buffer-icon">${ICONS.alert}</span>
+        <span class="js-buffer-text"></span>
+      </div>
+    </div>
+  `;
+
+  const r = {
+    card,
+    name: card.querySelector('.js-name'),
+    desc: card.querySelector('.js-desc'),
+    badgeAffordable: card.querySelector('.js-badge-affordable'),
+    badgeDeficit: card.querySelector('.js-badge-deficit'),
+    badgeBuffer: card.querySelector('.js-badge-buffer'),
+    loan: card.querySelector('.js-loan'),
+    deposit: card.querySelector('.js-deposit'),
+    stampDuty: card.querySelector('.js-stampDuty'),
+    dutyNote: card.querySelector('.js-duty-note'),
+    otherCostsDisplay: card.querySelector('.js-otherCosts'),
+    cashNeeded: card.querySelector('.js-cashNeeded'),
+    monthlyRepayment: card.querySelector('.js-monthlyRepayment'),
+    personalTaxable: card.querySelector('.js-personalTaxable'),
+    personalTotal: card.querySelector('.js-personalTotal'),
+    bdSuperRow: card.querySelector('.js-bd-super-row'),
+    bdSuper: card.querySelector('.js-bd-super'),
+    bdD293Row: card.querySelector('.js-bd-d293-row'),
+    bdD293: card.querySelector('.js-bd-d293'),
+    bdBucketRow: card.querySelector('.js-bd-bucket-row'),
+    bdBucket: card.querySelector('.js-bd-bucket'),
+    totalTax: card.querySelector('.js-totalTax'),
+    taxSaved: card.querySelector('.js-taxSaved'),
+    businessBankEnd: card.querySelector('.js-businessBankEnd'),
+    personalCashEnd: card.querySelector('.js-personalCashEnd'),
+    totalCash30June: card.querySelector('.js-totalCash30June'),
+    cashGrowth: card.querySelector('.js-cashGrowth'),
+    totalCashSettle: card.querySelector('.js-totalCashSettle'),
+    bufferRetain: card.querySelector('.js-bufferRetain'),
+    propertyCashNeeded: card.querySelector('.js-propertyCashNeeded'),
+    surplus: card.querySelector('.js-surplus'),
+    buffer30JuneStatus: card.querySelector('.js-buffer-30june-status'),
+    bufferIcon: card.querySelector('.js-buffer-icon'),
+    bufferText: card.querySelector('.js-buffer-text'),
+    inputs: {},
+  };
+
+  ['propertyTarget', 'superContrib', 'bucket', 'prepaid'].forEach(field => {
+    r.inputs[field] = {
+      num: card.querySelector(`.js-num-${field}`),
+      range: card.querySelector(`.js-range-${field}`),
+    };
+  });
+
+  Object.entries(r.inputs).forEach(([field, els]) => {
+    const max = Number(els.num.dataset.max) || Number(els.range.max);
+    const min = Number(els.range.min);
+
+    els.num.addEventListener('input', e => {
+      const raw = e.target.value;
+      let v = raw === '' ? 0 : Number(raw);
+      if (isNaN(v)) v = 0;
+      const clamped = Math.max(min, Math.min(v, max));
+      const sc = state.scenarios.find(x => x.id === s.id);
+      if (!sc) return;
+      sc[field] = clamped;
+      els.range.value = clamped;
+      const exceeded = v > max;
+      els.num.classList.toggle('exceeded', exceeded);
+      updateSliderTrack(els.range, clamped, min, max, exceeded ? '#dc2626' : '#166534');
+      updateAll();
+    });
+
+    els.num.addEventListener('blur', e => {
+      const sc = state.scenarios.find(x => x.id === s.id);
+      if (sc) e.target.value = sc[field];
+    });
+
+    els.range.addEventListener('input', e => {
+      const v = Number(e.target.value);
+      const sc = state.scenarios.find(x => x.id === s.id);
+      if (!sc) return;
+      sc[field] = v;
+      if (document.activeElement !== els.num) els.num.value = v;
+      updateSliderTrack(els.range, v, min, max, '#166534');
+      updateAll();
+    });
+
+    updateSliderTrack(els.range, s[field], min, max, '#166534');
+  });
+
+  r.name.addEventListener('input', e => {
+    const sc = state.scenarios.find(x => x.id === s.id);
+    if (sc) sc.name = e.target.value;
+  });
+  r.desc.addEventListener('input', e => {
+    const sc = state.scenarios.find(x => x.id === s.id);
+    if (sc) sc.description = e.target.value;
+  });
+
+  refs.set(s.id, r);
+  return card;
+}
+
+function buildInputHtml(field, value, max, label, icon, hint) {
+  return `
+    <div class="input-mini">
+      <div class="input-mini-row">
+        <label class="input-mini-label">${icon} ${label}</label>
+        <div class="number-wrap">
+          <span class="prefix" style="font-size: 11px;">$</span>
+          <input type="number" class="num-input num-input-sm js-num-${field}" data-max="${max}" value="${value}" />
+        </div>
+      </div>
+      <input type="range" class="range-input range-sm js-range-${field}" min="0" max="${max}" step="500" value="${value}" />
+      <p class="hint">${hint}</p>
+    </div>
+  `;
+}
+
+function updateScenarioDisplay(s, result) {
+  const r = refs.get(s.id);
+  if (!r) return;
+
+  // Card class
+  r.card.classList.toggle('surplus', result.canAffordPurchase && result.bufferOk30June);
+  r.card.classList.toggle('deficit', !result.canAffordPurchase);
+
+  r.badgeAffordable.hidden = !result.canAffordPurchase;
+  r.badgeDeficit.hidden = result.canAffordPurchase;
+  r.badgeBuffer.hidden = result.bufferOk30June;
+
+  // Property
+  r.loan.textContent = fmt(result.loan);
+  r.deposit.textContent = fmt(result.deposit);
+  r.stampDuty.textContent = fmt(result.stampDuty);
+  r.otherCostsDisplay.textContent = fmt(state.otherCosts);
+  r.cashNeeded.textContent = fmt(result.cashNeeded);
+  r.monthlyRepayment.textContent = `${fmt(result.monthlyRepayment)}/mo`;
+
+  // Duty note (no FHB concession for Will - he's owned previous properties)
+  r.dutyNote.textContent = '(full duty)';
+
+  // Tax
+  r.personalTaxable.textContent = fmt(result.personalTaxable);
+  r.personalTotal.textContent = fmt(result.personalTotal);
+  r.bdSuperRow.hidden = !(s.superContrib > 0);
+  r.bdSuper.textContent = fmt(result.superTax);
+  r.bdD293Row.hidden = !(result.div293 > 0);
+  r.bdD293.textContent = fmt(result.div293);
+  r.bdBucketRow.hidden = !(s.bucket > 0);
+  r.bdBucket.textContent = fmt(result.bucketTax);
+  r.totalTax.textContent = fmt(result.totalTax);
+  r.taxSaved.textContent = `-${fmt(Math.abs(result.taxSaved))}`;
+
+  // Cash flow
+  r.businessBankEnd.textContent = fmt(result.businessBankEnd);
+  r.personalCashEnd.textContent = fmt(result.personalCashEnd);
+  r.totalCash30June.textContent = fmt(result.totalCashAt30June);
+  r.cashGrowth.textContent = `+${fmt(result.cashGrowthToSettle)}`;
+  r.totalCashSettle.textContent = fmt(result.totalCashAtSettlement);
+  r.bufferRetain.textContent = `-${fmt(state.minBuffer)}`;
+  r.propertyCashNeeded.textContent = `-${fmt(result.cashNeeded)}`;
+
+  // Surplus
+  r.surplus.textContent = result.surplus >= 0 ? `+${fmt(result.surplus)}` : fmt(result.surplus);
+  r.surplus.className = `value ${result.surplus >= 0 ? 'positive' : 'negative'}`;
+
+  // Buffer status pill (only show if breach)
+  if (!result.bufferOk30June) {
+    r.buffer30JuneStatus.hidden = false;
+    r.buffer30JuneStatus.className = 'status-pill fail';
+    r.bufferIcon.innerHTML = ICONS.cross;
+    r.bufferText.textContent = `Business bank at 30 June is ${fmt(Math.abs(result.bufferAmount30June))} below buffer`;
+  } else {
+    r.buffer30JuneStatus.hidden = true;
+  }
+}
+
+function updateAll() {
+  state.scenarios.forEach(s => {
+    const result = calculate(s);
+    updateScenarioDisplay(s, result);
+  });
+}
+
+function rebuildScenarioGrid() {
+  const grid = document.getElementById('scenariosGrid');
+  grid.innerHTML = '';
+  refs.clear();
+
+  state.scenarios.forEach(s => {
+    grid.appendChild(buildScenarioCard(s));
+  });
+
+  updateAll();
+}
+
+function resetAll() {
+  state.trustProfit = 320000;
+  state.personalCash = 10000;
+  state.businessBank = 140000;
+  state.minBuffer = 30000;
+  state.monthlyCashGrowth = 10000;
+  state.monthsToSettle = 4;
+  state.interestRate = 6.5;
+  state.loanYears = 30;
+  state.otherCosts = 7000;
+  state.scenarios = JSON.parse(JSON.stringify(DEFAULT_SCENARIOS));
+
+  const inputs = [
+    { numId: 'trustProfit', rangeId: 'trustProfitRange', value: 320000, min: 100000, max: 500000 },
+    { numId: 'personalCash', rangeId: 'personalCashRange', value: 10000, min: 0, max: 200000 },
+    { numId: 'businessBank', rangeId: 'businessBankRange', value: 140000, min: 0, max: 300000 },
+    { numId: 'minBuffer', rangeId: 'minBufferRange', value: 30000, min: 0, max: 100000 },
+    { numId: 'monthlyCashGrowth', rangeId: 'monthlyCashGrowthRange', value: 10000, min: 0, max: 30000 },
+    { numId: 'monthsToSettle', rangeId: 'monthsToSettleRange', value: 4, min: 1, max: 8 },
+    { numId: 'interestRate', rangeId: 'interestRateRange', value: 6.5, min: 3, max: 10 },
+    { numId: 'loanYears', rangeId: 'loanYearsRange', value: 30, min: 15, max: 30 },
+    { numId: 'otherCosts', rangeId: 'otherCostsRange', value: 7000, min: 3000, max: 15000 },
+  ];
+  inputs.forEach(({ numId, rangeId, value, min, max }) => {
+    document.getElementById(numId).value = value;
+    document.getElementById(rangeId).value = value;
+    updateSliderTrack(document.getElementById(rangeId), value, min, max, '#166534');
+  });
+
+  rebuildScenarioGrid();
+}
+
+function syncSharedInput(numId, rangeId, stateField, min, max, step) {
+  const numEl = document.getElementById(numId);
+  const rangeEl = document.getElementById(rangeId);
+
+  numEl.addEventListener('input', e => {
+    const raw = e.target.value;
+    let v = raw === '' ? min : Number(raw);
+    if (isNaN(v)) v = min;
+    const clamped = Math.max(min, Math.min(v, max));
+    state[stateField] = clamped;
+    rangeEl.value = clamped;
+    updateSliderTrack(rangeEl, clamped, min, max, '#166534');
+    updateAll();
+  });
+  numEl.addEventListener('blur', e => {
+    e.target.value = state[stateField];
+  });
+
+  rangeEl.addEventListener('input', e => {
+    const v = Number(e.target.value);
+    state[stateField] = v;
+    if (document.activeElement !== numEl) numEl.value = v;
+    updateSliderTrack(rangeEl, v, min, max, '#166534');
+    updateAll();
+  });
+
+  updateSliderTrack(rangeEl, state[stateField], min, max, '#166534');
+}
+
+syncSharedInput('trustProfit', 'trustProfitRange', 'trustProfit', 100000, 500000);
+syncSharedInput('personalCash', 'personalCashRange', 'personalCash', 0, 200000);
+syncSharedInput('businessBank', 'businessBankRange', 'businessBank', 0, 300000);
+syncSharedInput('minBuffer', 'minBufferRange', 'minBuffer', 0, 100000);
+syncSharedInput('monthlyCashGrowth', 'monthlyCashGrowthRange', 'monthlyCashGrowth', 0, 30000);
+syncSharedInput('monthsToSettle', 'monthsToSettleRange', 'monthsToSettle', 1, 8);
+syncSharedInput('interestRate', 'interestRateRange', 'interestRate', 3, 10);
+syncSharedInput('loanYears', 'loanYearsRange', 'loanYears', 15, 30);
+syncSharedInput('otherCosts', 'otherCostsRange', 'otherCosts', 3000, 15000);
+
+document.getElementById('resetBtn').addEventListener('click', resetAll);
+
+rebuildScenarioGrid();
+</script>
+
+</body>
+</html>
