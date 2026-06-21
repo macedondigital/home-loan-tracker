@@ -56,17 +56,17 @@ export interface PrepayableItem {
 // Default prepayable / bring-forward items, editable by the user (add/remove)
 // and persisted to localStorage. This is ONLY what is still outstanding before
 // 30 June - bring-forwards already paid in June are now in INCURRED_EXPENSES, so
-// listing them here would double-count. Total: $8,300.
+// listing them here would double-count. Total: $7,000.
 //
 // Already actioned (now in the accrual P&L, not repeated here): Scala hosting
 // $4,299.84 + Synergy $2,500 (Website hosting), Freshwater next-year $2,500
 // (Accounting), Anthropic $2,170 + Zoom $256.55 + 1Password $102.06 annualised
-// (Subscriptions), Launtel internet $3,000. MacBook and desk remain excluded as
-// capital/sunk costs.
+// (Subscriptions), Launtel internet $3,000. Google Workspace is billed monthly
+// (~$105-130/mo, already in the P&L), not an annual prepay. MacBook and desk
+// remain excluded as capital/sunk costs.
 export const DEFAULT_PREPAYABLES: PrepayableItem[] = [
   { id: 'bookkeeping', item: 'Bookkeeping (final FY invoice)', amount: 5000 },
-  { id: 'workspace', item: 'Google Workspace (annual)', amount: 2000 },
-  { id: 'aami', item: 'AAMI insurance renewal', amount: 1300 },
+  { id: 'bizcover', item: 'BizCover insurance renewal', amount: 2000 },
 ];
 
 export const sumExpenses = (rows: { amount: number }[]): number =>
