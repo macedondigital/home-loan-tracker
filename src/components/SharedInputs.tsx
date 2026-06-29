@@ -27,7 +27,7 @@ const GROUPS: Group[] = [
       {
         field: 'trustProfit', label: 'Trust net profit (FY25-26)', icon: <IconTrust />, prefix: '$',
         min: 100000, max: 500000, step: 5000,
-        hint: '$289k accrual net profit per the 29 June P&L, after all booked EOFY expenses. The trust reports on accrual (bad debts, depreciation, AR).',
+        hint: '~$279k: the 29 June accrual P&L net ($289k) less ~$10k of late June deductibles not yet booked (bookkeeping, DataforSEO, BizCover). The trust reports on accrual.',
       },
       {
         field: 'superAlreadyPaid', label: 'Super already paid (FY25-26)', icon: <IconWallet />, prefix: '$',

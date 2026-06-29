@@ -184,7 +184,7 @@ export function calculate(s: Scenario, shared: SharedInputs): ScenarioResult {
 }
 
 export const DEFAULT_SHARED: SharedInputs = {
-  trustProfit: 288730,
+  trustProfit: 278754,
   personalCash: 10000,
   businessBank: 70168,
   superAlreadyPaid: 60000,
@@ -207,7 +207,7 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
     propertyTarget: 650000,
     superContrib: 60000,
     bucket: 0,
-    prepaid: 7000,
+    prepaid: 0,
   },
   {
     id: 2,
@@ -216,7 +216,7 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
     propertyTarget: 700000,
     superContrib: 60000,
     bucket: 0,
-    prepaid: 7000,
+    prepaid: 0,
   },
   {
     id: 3,
@@ -225,6 +225,6 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
     propertyTarget: 750000,
     superContrib: 60000,
     bucket: 0,
-    prepaid: 7000,
+    prepaid: 0,
   },
 ];
