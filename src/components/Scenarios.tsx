@@ -9,7 +9,7 @@ import ScenarioGrid from './ScenarioGrid';
 import ExpenseAccordion from './ExpenseAccordion';
 import RevenueForecast from './RevenueForecast';
 
-const STORAGE_KEY = 'hbo-scenarios-v1';
+const STORAGE_KEY = 'hbo-scenarios-v2';
 
 export default function Scenarios() {
   const [shared, setShared] = useState<SharedInputsState>(DEFAULT_SHARED);
@@ -104,9 +104,9 @@ export default function Scenarios() {
           </div>
           <h1 style={s.h1}>Three property scenarios for October settlement</h1>
           <p style={s.subtitle}>
-            Updated with actual P&amp;L through 9 June ($308k YTD net profit). Adjust the
-            property target on each scenario to see how cash needed and surplus change. Full
-            standard VIC stamp duty applies (no first home buyer concession).
+            Updated with the 29 June P&amp;L (accrual net profit $289k) and the $60k super now
+            contributed. Adjust the property target on each scenario to see how cash needed and
+            surplus change. Full standard VIC stamp duty applies (no first home buyer concession).
           </p>
         </div>
         <button type="button" style={s.resetBtn} onClick={resetAll}>

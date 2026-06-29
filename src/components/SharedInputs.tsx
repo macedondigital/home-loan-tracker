@@ -27,17 +27,22 @@ const GROUPS: Group[] = [
       {
         field: 'trustProfit', label: 'Trust net profit (FY25-26)', icon: <IconTrust />, prefix: '$',
         min: 100000, max: 500000, step: 5000,
-        hint: '$308k YTD accrual through 9 June. Updated estimate accounts for late-June EOFY spending.',
+        hint: '$289k accrual net profit per the 29 June P&L, after all booked EOFY expenses. The trust reports on accrual (bad debts, depreciation, AR).',
+      },
+      {
+        field: 'superAlreadyPaid', label: 'Super already paid (FY25-26)', icon: <IconWallet />, prefix: '$',
+        min: 0, max: 200000, step: 5000,
+        hint: '$60k concessional contribution to Hostplus (24 June). Counts for the tax deduction but is not deducted from cash again.',
       },
       {
         field: 'personalCash', label: 'Personal cash on hand', icon: <IconWallet />, prefix: '$',
         min: 0, max: 200000, step: 5000,
-        hint: 'Funds super contribution first. Top up from business if needed.',
+        hint: 'Funds any further super contribution first, then tops up from business.',
       },
       {
-        field: 'businessBank', label: 'Business bank (30 June projected)', icon: <IconBuilding />, prefix: '$',
+        field: 'businessBank', label: 'Business bank (NAB operating)', icon: <IconBuilding />, prefix: '$',
         min: 0, max: 300000, step: 5000,
-        hint: '9 June actual: $120k. Projection adds expected June revenue net of spending.',
+        hint: '29 June actual NAB transaction account ($70,168). The $5,106 ATO holding and Stripe/PayPal (~$5.5k) sit outside this.',
       },
     ],
   },

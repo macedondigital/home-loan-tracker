@@ -245,10 +245,11 @@ export default function Compare() {
           returns swing year to year and sequencing matters. Treat the crossover as indicative, not a promise.
         </p>
         <p>
-          <strong style={s.footerStrong}>Not financial advice.</strong> A large concessional contribution
-          uses your carry-forward room (~$152,610 this year, the oldest slice expiring 30 June 2026), and it
-          locks the cash and reduces what's available for the deposit. Confirm the cap, Div 293, and timing
-          with Sarah before acting.
+          <strong style={s.footerStrong}>Not financial advice.</strong> Your FY25-26 concessional room was
+          ~$152,610 (the oldest carry-forward slice expiring 30 June 2026). You've now contributed $60k to
+          Hostplus (24 June), plus ~$11k employer SG, leaving roughly $80k of room - but a contribution locks
+          the cash and reduces what's available for the deposit. Confirm the cap, Div 293, and timing with
+          Sarah before acting.
         </p>
       </div>
     </div>

@@ -17,6 +17,11 @@ export interface SharedInputs {
   trustProfit: number;
   personalCash: number;
   businessBank: number;
+  // Concessional super already contributed this financial year. The cash has
+  // already left the accounts (current balances reflect it), so only any
+  // contribution beyond this draws fresh cash; the full superContrib still
+  // drives the tax calc.
+  superAlreadyPaid: number;
   minBuffer: number;
   revenueJul: number;
   revenueAug: number;
@@ -106,8 +111,12 @@ export function calculate(s: Scenario, shared: SharedInputs): ScenarioResult {
   // drawn back the following financial year (before the October settlement),
   // so they remain available for the deposit. Like personal income tax (assumed
   // covered by PAYG / franking), the bucket is not deducted from this cash flow.
-  const superDrawFromBusiness = Math.max(0, s.superContrib - shared.personalCash);
-  const personalCashUsedForSuper = Math.min(s.superContrib, shared.personalCash);
+  // Only the portion not already paid this year draws fresh cash now. The full
+  // superContrib still feeds the tax calc above; the already-paid slice is
+  // already reflected in the current business/personal balances.
+  const superCashStillNeeded = Math.max(0, s.superContrib - shared.superAlreadyPaid);
+  const superDrawFromBusiness = Math.max(0, superCashStillNeeded - shared.personalCash);
+  const personalCashUsedForSuper = Math.min(superCashStillNeeded, shared.personalCash);
   const businessBankEnd = shared.businessBank - s.prepaid - superDrawFromBusiness;
   const personalCashEnd = shared.personalCash - personalCashUsedForSuper;
   const totalCashAt30June = businessBankEnd + personalCashEnd;
@@ -175,9 +184,10 @@ export function calculate(s: Scenario, shared: SharedInputs): ScenarioResult {
 }
 
 export const DEFAULT_SHARED: SharedInputs = {
-  trustProfit: 307534,
+  trustProfit: 288730,
   personalCash: 10000,
-  businessBank: 137000,
+  businessBank: 70168,
+  superAlreadyPaid: 60000,
   minBuffer: 30000,
   revenueJul: 25000,
   revenueAug: 25000,
@@ -195,26 +205,26 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
     name: 'Conservative ($650k)',
     description: 'Smaller loan, lower repayments.',
     propertyTarget: 650000,
-    superContrib: 80000,
+    superContrib: 60000,
     bucket: 0,
-    prepaid: 22500,
+    prepaid: 7000,
   },
   {
     id: 2,
     name: 'Middle ($700k)',
     description: 'Balance between space and stretch.',
     propertyTarget: 700000,
-    superContrib: 80000,
+    superContrib: 60000,
     bucket: 0,
-    prepaid: 22500,
+    prepaid: 7000,
   },
   {
     id: 3,
     name: 'Target ($750k)',
     description: 'Original plan. Higher debt load.',
     propertyTarget: 750000,
-    superContrib: 80000,
+    superContrib: 60000,
     bucket: 0,
-    prepaid: 22500,
+    prepaid: 7000,
   },
 ];
