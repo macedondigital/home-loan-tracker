@@ -627,3 +627,90 @@ Wiring:
 - Jul-Oct income forecasting.
 - D1 persistence for scenarios.
 - Link monthly cash growth to Spending-tab actuals.
+
+---
+
+# PLAN: Offset vs Super vs Warehouse (Compare tab, Phase 2)
+
+Extends the existing "Offset vs Super" page (`Compare.tsx` + `projection.ts`) with
+a third destination for the modelled lump sum: an industrial warehouse bought
+through an SMSF (~2027, after the October 2026 home settlement). Three curves,
+three destinations, one decision view. Indicative model, not advice.
+
+## Strategic context
+
+Will is weighing a small Business Real Property warehouse (Belmont/Breakwater,
+Geelong) bought via SMSF: ~$400-450k, business case is the daily Leopold->Belmont
+school run becoming Leopold->Belmont->Breakwater (office)->Belmont->Leopold, plus
+likely subletting part of the unit. SMSF builds through FY26-27, purchase mid-2027.
+
+## Decisions (confirmed with Will, this session)
+
+- **Math = Option A (proportional share).** The lump's after-entry-tax amount
+  (~$70k of $100k at 30%) is its slice of the SMSF deposit (~$170k), so the curve
+  is `share x warehouse equity`, share = afterTaxLump / totalDeposit (~0.41). Keeps
+  the page's "what happens to THIS lump sum" framing honest under leverage.
+- **Curve starts at year 0** (shared origin with offset/super; fine print notes the
+  real purchase is ~mid-2027, so the first ~18 months are a simplification).
+- **Sublet baked into gross rent** ($22k), no separate input.
+- **SMSF costs:** admin $2,500/yr is a visible slider drag; $7,500 setup is a fixed
+  one-off absorbed into year-0 equity with a fine-print note.
+- **LRBA amortised, fully paid by year 20** (no refinance); after payoff, rent no
+  longer services interest and equity accelerates.
+- **Scope trims:** the "Your real plan" sequencing chart stays 2-line (super-now vs
+  home-first); warehouse appears on the main 3-way chart + table only and shares
+  super's lock band. Nav tab label stays "Offset vs Super" (mobile fit); page H1
+  becomes the three-way title.
+
+## Model (per year t, pure functions in projection.ts)
+
+```
+afterTaxLump = lumpSum x (1 - entryTax%)              // reuses superContribTaxPct (30)
+totalDeposit = price x depositPct                      // 425000 x 0.40 = 170000
+loan         = price - totalDeposit                    // 255000
+share        = min(1, afterTaxLump / totalDeposit)     // ~0.41
+propertyValue[t] = price x (1 + growth)^t
+lrbaBalance[t]   = amortise(loan, lrbaRate, term)[t]   // 0 after term (yr 20)
+grossRent[t]     = rent x (1 + growth)^t               // rent indexes with property
+netRent[t]       = grossRent[t] x (1 - expense%) - interestPaid[t] - admin
+afterTaxRent[t]  = max(0, netRent[t]) x (1 - earningsTax%)   // 15%
+cumRent[t]       = cumRent[t-1] x (1 + superRate%) + afterTaxRent[t]
+equity[t]        = propertyValue[t] - lrbaBalance[t] + cumRent[t] - setupCost
+warehouse[t]     = share x equity[t]
+```
+
+Inputs (new "Warehouse (SMSF)" assumptions card, RangeInput sliders): price
+$425,000, deposit 40%, LRBA rate 8%, LRBA term 20yr, capital growth 4%, gross
+rent $22,000, property expenses 15% of rent, SMSF admin $2,500/yr. Reuses
+`superContribTaxPct` (entry tax 30%) and `superRatePct` (rent reinvestment).
+Constants: SMSF earnings tax 15%, setup $7,500.
+
+## Architecture / files
+
+- `projection.ts`: add `amortise(principal, ratePct, termYears)` -> per-year
+  `{ balance, interest }`, and `projectWarehouse(inputs)` -> `WarehouseResult`
+  (`series[]` of `{ year, warehouse }`, plus `share`, `start`). Pure, framework-free.
+- `projection.test.ts`: characterization tests for `amortise` (balance hits ~0 at
+  term, interest decreasing) and `projectWarehouse` (year-0 = share x (deposit -
+  setup), property compounds, loan clears by term).
+- `Compare.tsx`: new warehouse inputs in state + a collapsible "Warehouse (SMSF)"
+  card; generalise `Chart` from 2 series to N (warehouse line = orange `#ea580c`);
+  add a Warehouse column to the "At a glance" table; three-way verdict copy; lock
+  band now spans warehouse too; fine-print caveats.
+- Storage key bumps to `hbo-compare-v3` so new warehouse defaults load.
+
+## Caveats (fine print)
+
+BRP qualification required (else in-house asset rules break it); market rent +
+independent valuation mandatory (sole purpose test); SMSF setup/admin is a real
+drag (modelled: $7,500 + $2,500/yr); 4% growth is conservative for commercial and
+varies by location/tenant; LRBA availability assumed; concentration/illiquidity
+risk vs the diversified super destination. Not advice; Sarah validates.
+
+## Acceptance
+
+- `npm run test` passes (existing + new warehouse/amortise tests).
+- `/compare` renders the third curve, the warehouse card, and the table column;
+  lock band covers warehouse; no em dashes; mobile 375px no horizontal overflow.
+- `npm run build` clean; deployed and verified at
+  `home-loan-tracker.pages.dev/compare`.
